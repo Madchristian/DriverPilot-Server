@@ -9,6 +9,34 @@
 	let code = $state<string | null>(null);
 	let name = $state<string | null>(null);
 	let ready = $state(false);
+	let appTried = $state(false);
+	let appFailed = $state(false);
+
+	// Format fuer den Windows-Client (Issue #19): driverpilot://pair?server=<https-Origin>&code=<Einladungscode>
+	// Der Client belegt damit nur die Kopplungsfelder vor; Bestaetigung und Einloesen bleiben Nutzeraktionen.
+	const appLink = $derived(code ? `driverpilot://pair?${new URLSearchParams({ server: data.serverUrl, code }).toString()}` : '');
+
+	function openApp() {
+		appTried = true;
+		appFailed = false;
+		const started = Date.now();
+		const onHide = () => {
+			if (document.visibilityState === 'hidden') {
+				cleanup();
+			}
+		};
+		const timer = setTimeout(() => {
+			cleanup();
+			// Seite blieb sichtbar: kein registrierter Handler (DriverPilot fehlt oder kennt den Link noch nicht).
+			if (Date.now() - started < 2600) appFailed = true;
+		}, 2000);
+		const cleanup = () => {
+			clearTimeout(timer);
+			document.removeEventListener('visibilitychange', onHide);
+		};
+		document.addEventListener('visibilitychange', onHide);
+		location.href = appLink;
+	}
 
 	onMount(() => {
 		// Der Code steht im Fragment (#...). Browser schicken das Fragment nie an einen Server.
@@ -88,8 +116,19 @@
 					<span class="grid place-items-center size-8 shrink-0 rounded-full bg-accent-dim text-accent font-semibold text-sm">3</span>
 					<div class="min-w-0 flex-1">
 						<h2 class="font-semibold">In DriverPilot koppeln</h2>
-						<p class="mt-1 text-sm text-muted">„Hilfe von Christian“ öffnen, „Koppeln“ wählen und diese beiden Angaben eintragen:</p>
-						<div class="mt-4 grid gap-3">
+						<p class="mt-1 text-sm text-muted">Am einfachsten mit diesem Knopf, wenn DriverPilot installiert ist. Er öffnet die App und trägt beides ein; du bestätigst dort nur noch.</p>
+						<div class="mt-4 flex flex-wrap items-center gap-3">
+							<button type="button" class="btn btn-primary" onclick={openApp}><Icon name="external" />In DriverPilot öffnen</button>
+							{#if appTried && !appFailed}<span class="text-xs text-muted">DriverPilot sollte sich jetzt melden …</span>{/if}
+						</div>
+						{#if appFailed}
+							<p class="mt-3 rounded-lg bg-warn-dim text-warn px-3 py-2 text-sm">
+								DriverPilot hat nicht reagiert. Entweder ist es noch nicht installiert, oder deine Version kennt diesen Link noch nicht.
+								Dann in DriverPilot „Hilfe von Christian“ und „Koppeln“ öffnen und die beiden Angaben unten eintragen.
+							</p>
+						{/if}
+						<p class="mt-4 text-sm text-muted">Von Hand: „Hilfe von Christian“ öffnen, „Koppeln“ wählen und diese beiden Angaben eintragen:</p>
+						<div class="mt-3 grid gap-3">
 							<div>
 								<span class="label">Serveradresse</span>
 								<div class="flex gap-2">

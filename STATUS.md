@@ -19,7 +19,7 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 ## Etappen
 
 - [x] SvelteKit-Oberfläche (`web/`): öffentliche Seiten, Einladungsseite, Admin mit strukturiertem Entwurfs-Editor; Python-Admin ist jetzt interne JSON-API (`/admin-api`, Token, nur Compose-Netz); geprüft mit svelte-check, Build, Playwright-Klicktest (Einladung erzeugen, Link öffnen, speichern, freigeben) und 390-px-Breite
-- [x] Einladungslink (`/einladung#c=…&n=…`, Code im Fragment, nie beim Server). **Hinweis an den DriverPilot-Agenten:** ein `driverpilot://pair?server=…&code=…`-Handler im Client würde den Kopierschritt sparen
+- [x] Einladungslink (`/einladung#c=…&n=…`, Code im Fragment, nie beim Server). Knopf „In DriverPilot öffnen“ ruft `driverpilot://pair?server=…&code=…` auf (Rückfall mit Kopierfeldern, wenn kein Handler reagiert). **Offen beim DriverPilot-Agenten:** Schema im Client registrieren, Format in README des Servers
 - [x] Setup-ZIP neben der EXE (Browser/SmartScreen blockieren die EXE); Repo öffentlich mit MIT-Lizenz nach gitleaks-Scan der ganzen Historie
 
 - [x] Handbuch für Freunde, Christian und Betrieb: `docs/HANDBUCH.md` (nach Humanizer-Regeln überarbeitet)

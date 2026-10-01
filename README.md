@@ -47,6 +47,13 @@ Installation und Koppeln mit Kopierknöpfen für Serveradresse und Code. Das wei
 Vertragsregel „Einladungen nie in URLs“ ab, die sich auf HTTP-Anfragen bezieht: Das Fragment
 erreicht keinen Server, der Code bleibt einmalig und befristet.
 
+**App-Link:** Die Einladungsseite bietet zusätzlich „In DriverPilot öffnen“ mit
+`driverpilot://pair?server=<https-Origin>&code=<Einladungscode>` (Query percent-codiert). Der
+Windows-Client muss das Schema `driverpilot` registrieren, `server` auf `https://` ohne Pfad,
+Query und Benutzerangabe prüfen, beide Werte nur in die Kopplungsfelder vorbelegen und
+`POST /pairings/redeem` erst nach Bestätigung durch den Nutzer senden. Reagiert kein Handler
+(Seite bleibt sichtbar), zeigt die Seite den Rückfall mit Kopierfeldern.
+
 ## Entwicklung
 
 ```
