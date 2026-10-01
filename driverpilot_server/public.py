@@ -57,7 +57,8 @@ class Public:
         page = self.env.get_template("public.html").render(title=title, body=body_html, base_url=self.settings.public_base_url)
         response = HTMLResponse(page, status_code=status)
         response.headers.update(SECURITY_HEADERS)
-        response.headers["Cache-Control"] = "public, max-age=300"
+        # Fehlerseiten nie cachen: Cloudflare haelt ein 404 fuer zip/exe sonst minutenlang fest.
+        response.headers["Cache-Control"] = "public, max-age=300" if status == 200 else "no-store"
         return response
 
     def _markdown(self, name: str) -> str:
