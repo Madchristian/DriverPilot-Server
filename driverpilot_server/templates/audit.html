@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Audit{% endblock %}
+{% block content %}
+<h1>Audit (Metadaten, 30 Tage)</h1>
+<table>
+  <thead><tr><th>Zeit (UTC)</th><th>Akteur</th><th>Operation</th><th>Fall</th><th>Ergebnis</th><th>Detail</th></tr></thead>
+  <tbody>
+  {% for e in entries %}
+  <tr><td>{{ e.at }}</td><td>{{ e.actor }}</td><td>{{ e.operation }}</td><td>{% if e.case_id %}<a href="/cases/{{ e.case_id }}"><code>{{ e.case_id|short }}</code></a>{% endif %}</td><td>{{ e.outcome }}</td><td class="muted">{{ e.detail or '' }}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted">Keine Einträge.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}

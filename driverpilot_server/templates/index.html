@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Fälle</h1>
+<div class="kpis">
+  <div class="kpi"><b>{{ stats.open }}</b><span>offen</span></div>
+  <div class="kpi"><b>{{ stats.by_status.get('awaiting_review', 0) }}</b><span>warten auf Prüfung</span></div>
+  <div class="kpi"><b>{{ stats.by_status.get('analysis_failed', 0) }}</b><span>Analyse fehlgeschlagen</span></div>
+  <div class="kpi"><b>{{ stats.today }} / {{ settings.max_new_cases_global_per_day }}</b><span>neue Fälle heute</span></div>
+  <div class="kpi"><b>{{ stats.clients_active }}</b><span>aktive Zugänge</span></div>
+  <div class="kpi"><b>{{ stats.jobs_queued }} / {{ stats.jobs_leased }}</b><span>Aufträge wartend / laufend</span></div>
+  <div class="kpi"><b>{{ stats.ai_budget_used }} / {{ stats.ai_budget_total }}</b><span>KI-Aufrufe heute ({{ stats.ai_provider }})</span></div>
+</div>
+<table>
+  <thead><tr><th>Fall</th><th>Zustand</th><th>Symptom</th><th>Eingang (UTC)</th><th>Ablauf</th><th>Zugang</th><th>KI</th><th>Rev.</th><th>Rückm.</th></tr></thead>
+  <tbody>
+  {% for c in cases %}
+  <tr>
+    <td><a href="/cases/{{ c.id }}"><code>{{ c.id|short }}</code></a></td>
+    <td><span class="status {{ c.status }}">{{ c.status }}</span>{% if c.status_reason %} <span class="muted">{{ c.status_reason }}</span>{% endif %}</td>
+    <td>{{ c.symptom_category }} <span class="muted">v{{ c.app_version }}</span></td>
+    <td>{{ c.received_at }}</td>
+    <td>{{ c.expires_at }}</td>
+    <td>{{ c.client_label }} <code class="muted">{{ c.client_id|short }}</code></td>
+    <td>{{ 'erlaubt' if c.external_ai_allowed else 'nein' }}{% if c.attempts %} <span class="muted">({{ c.attempts }} Versuche)</span>{% endif %}</td>
+    <td>{{ c.current_revision or '–' }}</td>
+    <td>{{ c.feedback_count }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="9" class="muted">Keine Fälle vorhanden.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

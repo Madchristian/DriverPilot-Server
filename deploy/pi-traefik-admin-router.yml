@@ -1,0 +1,23 @@
+# Schnipsel fuer dns-prod-2:/home/christian/traefik/data/config.yml (File-Provider).
+# Adminansicht des Ferndiagnose-Servers: https://driverpilot.dns-prod-2.local.cstrube.de
+# Wildcard-DNS *.dns-prod-2.local.cstrube.de -> 10.0.30.5 und Wildcard-Cert existieren bereits.
+# agent-secured = enge Allowlist (Mgmt/LAN/Server/VPN/Tailnet) + Security-Header,
+# sso = Authentik ForwardAuth (Gruppe Homelab-Admins). Die App prueft zusaetzlich,
+# dass die Identitaetsheader von 10.0.30.5 kommen (DP_ADMIN_TRUSTED_PROXIES).
+http:
+  routers:
+    driverpilot-admin:
+      rule: "Host(`driverpilot.dns-prod-2.local.cstrube.de`)"
+      service: driverpilot-admin
+      entryPoints:
+        - https
+      tls:
+        certResolver: cloudflare
+      middlewares:
+        - agent-secured
+        - sso
+  services:
+    driverpilot-admin:
+      loadBalancer:
+        servers:
+          - url: "http://10.0.30.3:8141"

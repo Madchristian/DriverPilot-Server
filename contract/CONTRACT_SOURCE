@@ -1,0 +1,5 @@
+Kopie von contracts/remote-diagnosis aus https://github.com/Madchristian/DriverPilot
+Commit: 3c1becd3b9ff4bbe26c63cd6e45b06f032291b1c
+Pfad:   contracts/remote-diagnosis/v1 (+ validate_contract.py)
+Aktualisieren: Verzeichnis v1/ komplett ersetzen, Commit hier eintragen, pytest laufen lassen.
+Fixtures sind byte-exakt (report_sha256) - nie mit Zeilenenden-Konvertierung kopieren.

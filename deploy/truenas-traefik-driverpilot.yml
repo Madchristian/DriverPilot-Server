@@ -1,0 +1,31 @@
+# Ziel: TrueNAS /mnt/FastStorage/docker/stacks/traefik/dynamic/driverpilot.yml
+# driverpilot.cstrube.de -> DriverPilot Ferndiagnose-API auf rpi4-400 (10.0.30.3:8140).
+#
+# Nur ueber Cloudflare (Origin-Lock B-010, Middleware cloudflare-only). Der Client
+# (DriverPilot, Windows) folgt keinen Redirects und erwartet JSON-Fehlerobjekte;
+# CrowdSec/Rate-Limit antworten im Blockfall mit Plain-403/429, das faengt der
+# Client ueber den Statuscode ab (CLIENT.md).
+#
+# Uploadlimit 256 KiB prueft die Anwendung selbst (auch chunked). Der Admin-Port
+# 8141 wird hier bewusst NICHT geroutet; er haengt am Pi-Traefik hinter Authentik.
+http:
+  routers:
+    driverpilot:
+      rule: Host(`driverpilot.cstrube.de`)
+      service: driverpilot
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+      middlewares:
+        - cloudflare-only
+        - crowdsec-bouncer
+        - security-headers
+        - rate-limit-public
+        - forwarded-https
+  services:
+    driverpilot:
+      loadBalancer:
+        passHostHeader: true
+        servers:
+          - url: http://10.0.30.3:8140
