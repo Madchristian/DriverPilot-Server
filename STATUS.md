@@ -18,14 +18,16 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 ## Etappen
 
 - [x] Vertrag vendoren, Validator grün (`11 schemas, 27 error codes, 22 valid, 38 invalid`)
-- [x] Server implementiert (API, Admin, Worker, Bereinigung), 93 Tests grün (inkl. Codex-Adapter gegen nachgebildetes Backend)
+- [x] Server implementiert (API, Admin, Worker, Bereinigung), 94 Tests grün (inkl. Codex-Adapter gegen nachgebildetes Backend); Dependabot-Meldungen behoben (starlette 1.7, python-multipart 0.0.32, pytest 9.1)
 - [x] Repo auf GitHub: https://github.com/Madchristian/DriverPilot-Server (Deploy-Key read-only fuer rpi4-400)
 - [x] Deployment auf rpi4-400 (`~/driverpilot-server`, Compose, healthy), Smoke-Test im LAN: readyz/capabilities/404-Fehlerobjekt/Admin-403 ohne Proxy
 - [x] Pi-Traefik: Admin-Router live (`driverpilot.dns-prod-2.local.cstrube.de` → 302 Authentik); Identitaetsheader nur von dns-prod-2 (10.0.30.5/10.0.20.162)
 - [x] TrueNAS-Traefik `dynamic/driverpilot.yml` + Cloudflare-Record (records.tf, tofu apply) live seit 2026-10-01; Origin-Lock geprüft (Direktzugriff 403)
 - [x] HTTPS über die Cloudflare-Edge geprüft: HTTP/2 200 `/capabilities`, Kette Google Trust Services (CF-Edge), `Cache-Control: no-store`, 404/401 als Fehlerobjekte, `WWW-Authenticate: Bearer`; http→https 301 nur an der Edge (Client nutzt ausschließlich https). Test von einem Anschluss außerhalb des Homelabs steht noch aus (Christian/DriverPilot-Agent)
 - [x] Codex-Adapter + Adminseite „KI (ChatGPT)“ (Device-Code-Login, auth.json-Import, Logout); Datenschutzhinweis v2026-10-01.2 nennt OpenAI
-- [ ] Christian: in der Adminansicht bei ChatGPT anmelden; in den ChatGPT-Kontoeinstellungen Trainingsnutzung prüfen (im Hinweis als abgeschaltet zugesagt)
+- [x] ChatGPT-Login: Tokendatei aus dem Homelab-Dashboard übernommen (gleiches Konto; Refresh-Token wird jetzt von zwei Diensten benutzt, bei Rotation ggf. erneut kopieren oder eigenen Device-Login machen)
+- [x] Echter Providerlauf mit synthetischem Vertragsbericht am 2026-10-01: Entwurf nach ~2:20 min (7.075 Tokens), schemagültig, in der Adminansicht als KI-ENTWURF; Fall `71125ec3…` wartet auf Prüfung. Gotchas: Backend sendet SSE ohne Content-Type (Erkennung am Inhalt), Timeout 300 s nötig
+- [ ] Christian: in den ChatGPT-Kontoeinstellungen Trainingsnutzung prüfen (im Hinweis als abgeschaltet zugesagt)
 - [ ] Datenschutzhinweis-Text mit Christian final abstimmen (dann Version anheben)
 - [ ] Windows-E2E mit dem DriverPilot-Client (DriverPilot-Agent); Einladungscode über sicheren Kanal
 - [ ] Drei READY-Reviews (Security/Privacy, API/State, Betrieb/UX) desselben Stands

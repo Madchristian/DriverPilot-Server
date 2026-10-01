@@ -350,8 +350,9 @@ class CodexAdapter:
             log.warning("Codex-Antwort ohne JSON-Objekt: status=%s content-type=%s laenge=%d ereignisse=%s",
                         response.status_code, content_type, len(text), ",".join(sorted(events)) or "-")
             raise AdapterRejected("Antwort ist kein JSON-Objekt")
-        log.info("Codex-Entwurf erhalten: laenge=%d ereignisse=%s usage=%s", len(text), ",".join(sorted(events)) or "-", usage)
-        return AdapterResult(content, self.model, self.prompt_version, usage or {})
+        usage = _compact_usage(usage)
+        log.info("Codex-Entwurf erhalten: laenge=%d usage=%s", len(text), usage)
+        return AdapterResult(content, self.model, self.prompt_version, usage)
 
     @staticmethod
     def _read(response: httpx.Response) -> tuple[str, dict | None, set[str]]:
@@ -410,6 +411,18 @@ class CodexAdapter:
                     raise AdapterTransientError(message[:200])
                 raise AdapterRejected(message[:200])
         return ("".join(parts) or "".join(fallback)), usage, events
+
+
+def _compact_usage(usage) -> dict:
+    """Nur die Summen; die Attribution je Nachricht aus dem Backend ist fuer uns ohne Wert."""
+    if not isinstance(usage, dict):
+        return {}
+    keys = ("input_tokens", "output_tokens", "total_tokens")
+    compact = {k: usage[k] for k in keys if isinstance(usage.get(k), int)}
+    reasoning = (usage.get("output_tokens_details") or {}).get("reasoning_tokens")
+    if isinstance(reasoning, int):
+        compact["reasoning_tokens"] = reasoning
+    return compact
 
 
 def _text_from_output(output: list) -> str:

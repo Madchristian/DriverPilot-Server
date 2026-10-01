@@ -632,6 +632,8 @@ class Service:
         preview = self.preview_result(case, content, max(1, case["current_revision"] + 1), ai_assisted=False)
         problems = self.contract.result_problems(preview, report, self.settings.max_result_bytes)
         for pointer, value in _iter_strings(content):
+            if pointer.rsplit("/", 1)[-1] in ("pointer", "url", "id", "kind", "risk_class", "required_privileges"):
+                continue  # strukturelle Felder, keine Freitexte
             hits = self.contract.text_hits(value)
             if hits:
                 problems.append(f"{pointer}: enthaelt Marker {', '.join(hits)} (Hinweis, keine Sperre)")
