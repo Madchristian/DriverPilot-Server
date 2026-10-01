@@ -336,20 +336,40 @@ class CodexAdapter:
                     raise AdapterTransientError(f"Codex HTTP {response.status_code}")
                 if response.status_code >= 400:
                     raise AdapterRejected(f"Codex HTTP {response.status_code}")
-                text, usage = self._read(response)
+                content_type = response.headers.get("content-type", "")
+                try:
+                    text, usage, events = self._read(response)
+                except ValueError as exc:
+                    # Nur Metadaten protokollieren, nie Antwortinhalt.
+                    log.warning("Codex-Antwort nicht lesbar: status=%s content-type=%s (%s)", response.status_code, content_type, type(exc).__name__)
+                    raise AdapterRejected("Antwort nicht lesbar") from None
         except httpx.HTTPError as exc:
             raise AdapterTransientError(type(exc).__name__) from None
         content = _extract_json(text)
         if content is None:
+            log.warning("Codex-Antwort ohne JSON-Objekt: status=%s content-type=%s laenge=%d ereignisse=%s",
+                        response.status_code, content_type, len(text), ",".join(sorted(events)) or "-")
             raise AdapterRejected("Antwort ist kein JSON-Objekt")
+        log.info("Codex-Entwurf erhalten: laenge=%d ereignisse=%s usage=%s", len(text), ",".join(sorted(events)) or "-", usage)
         return AdapterResult(content, self.model, self.prompt_version, usage or {})
 
     @staticmethod
-    def _read(response: httpx.Response) -> tuple[str, dict | None]:
+    def _read(response: httpx.Response) -> tuple[str, dict | None, set[str]]:
+        """Liest SSE oder JSON. Gibt (Text, usage, gesehene Ereignistypen) zurueck; ValueError bei Nicht-JSON."""
         content_type = response.headers.get("content-type", "")
+        events: set[str] = set()
         if "text/event-stream" not in content_type:
-            data = json.loads(response.read().decode("utf-8"))
-            return _text_from_output(data.get("output") or []), data.get("usage")
+            raw = response.read().decode("utf-8", "replace")
+            if not raw.strip():
+                raise ValueError("leere Antwort")
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                raise ValueError("kein Objekt")
+            if data.get("error"):
+                message = str((data["error"] or {}).get("message", "")) if isinstance(data["error"], dict) else str(data["error"])
+                raise AdapterTransientError(message[:200]) if "rate" in message.lower() else AdapterRejected(message[:200])
+            events.add("json")
+            return _text_from_output(data.get("output") or []), data.get("usage"), events
         parts: list[str] = []
         fallback: list[str] = []
         usage = None
@@ -363,7 +383,8 @@ class CodexAdapter:
                 event = json.loads(payload)
             except ValueError:
                 continue
-            kind = event.get("type")
+            kind = str(event.get("type"))
+            events.add(kind)
             if kind == "response.output_text.delta":
                 parts.append(str(event.get("delta") or ""))
             elif kind == "response.output_item.done":
@@ -378,7 +399,7 @@ class CodexAdapter:
                 if "rate" in message.lower() or "overload" in message.lower():
                     raise AdapterTransientError(message[:200])
                 raise AdapterRejected(message[:200])
-        return ("".join(parts) or "".join(fallback)), usage
+        return ("".join(parts) or "".join(fallback)), usage, events
 
 
 def _text_from_output(output: list) -> str:
