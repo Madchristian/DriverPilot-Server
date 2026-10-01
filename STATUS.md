@@ -19,9 +19,9 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 
 - [x] Vertrag vendoren, Validator grün (`11 schemas, 27 error codes, 22 valid, 38 invalid`)
 - [x] Server implementiert (API, Admin, Worker, Bereinigung), 80 Tests grün
-- [ ] Repo auf GitHub, erster Commit
-- [ ] Deployment auf rpi4-400, Smoke-Test im LAN
-- [ ] Pi-Traefik: Admin-Router (`deploy/pi-traefik-admin-router.yml`)
+- [x] Repo auf GitHub: https://github.com/Madchristian/DriverPilot-Server (Deploy-Key read-only fuer rpi4-400)
+- [x] Deployment auf rpi4-400 (`~/driverpilot-server`, Compose, healthy), Smoke-Test im LAN: readyz/capabilities/404-Fehlerobjekt/Admin-403 ohne Proxy
+- [x] Pi-Traefik: Admin-Router live (`driverpilot.dns-prod-2.local.cstrube.de` → 302 Authentik); Identitaetsheader nur von dns-prod-2 (10.0.30.5/10.0.20.162)
 - [ ] TrueNAS-Traefik: `deploy/truenas-traefik-driverpilot.yml` + Cloudflare-Record (`deploy/cloudflare-records.tf.snippet`) — **braucht Christians Go** (öffentliche Exposition)
 - [ ] Realer HTTPS-Test von außerhalb (Zertifikatskette, Redirect-Verhalten, Fehlerobjekte)
 - [ ] Datenschutzhinweis-Text mit Christian final abstimmen (dann Version anheben)
@@ -42,6 +42,13 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 - Pairing-Fehlversuche: 5 je IP je 15 Minuten → 429 mit `Retry-After`.
 - Für den E2E-Test erzeugt Christian in der Adminansicht eine Einladung; Code + Basis-URL
   kommen über einen sicheren Kanal, nie über ein Issue.
+
+## Betriebsnotizen
+
+- dns-prod-2 routet Pakete zur .3 ueber `eth0.20` (`ip route get 10.0.30.3` → src 10.0.20.162), obwohl
+  eth0 10.0.30.5/24 traegt. Deshalb stehen beide Adressen in `DP_ADMIN_TRUSTED_PROXIES`. Wird das
+  Routing der Pi einmal korrigiert, bleibt die Liste gueltig.
+- Backup der Pi-Traefik-Config vor der Aenderung: `~/traefik/data/config.yml.bak-driverpilot-<datum>`.
 
 ## Bekannte Grenzen / bewusst nicht gemacht
 
