@@ -30,7 +30,7 @@ Ein Prozess, zwei Ports:
 
 | Port | Zweck | Erreichbar über |
 |---|---|---|
-| 8140 | Client-API `/api/v1`, `/healthz`, `/readyz` | Cloudflare → UDM → TrueNAS-Traefik (`cloudflare-only`) → `10.0.30.3:8140` |
+| 8140 | Client-API `/api/v1`, `/healthz`, `/readyz`; öffentliche Seiten `/`, `/anleitung`, `/datenschutz`, `/downloads/` | Cloudflare → UDM → TrueNAS-Traefik (`cloudflare-only`) → `10.0.30.3:8140` |
 | 8141 | Adminansicht | Pi-Traefik `dns-prod-2` (`agent-secured` + Authentik `sso`) → `10.0.30.3:8141` |
 
 Der Admin-Port nimmt Identitätsheader (`X-authentik-username`, `X-authentik-groups`) nur von
@@ -92,6 +92,16 @@ gelöscht (secure_delete + WAL-Checkpoint), Audit nach 30 Tagen, Tombstones mit 
 aus Issue #19 §9). Gesichert werden nur Repo, `.env` und Deployment. Storageverlust kann
 Pilotfälle verlieren; der Nutzer kann neu senden. Logs enthalten keine Bodies, Tokens oder
 Einladungen; das Audit nur Metadaten (Akteur, Operation, Fall-ID, Ergebnis).
+
+### Öffentliche Seiten und Downloads
+
+Auf dem API-Host liegen eine Anleitung für Freunde (`docs/public/anleitung.md`, als HTML
+gerendert), der Datenschutzhinweis und eine Downloadseite für die signierten Release-Dateien
+des Windows-Clients. Die Dateien liegen in `./downloads` (read-only im Container) und kommen
+per `deploy/publish-release.sh <tag>` von GitHub dorthin; die Seite zeigt Größe und SHA-256.
+Erlaubt sind nur Dateinamen aus `[A-Za-z0-9._-]` mit den Endungen exe, zip, cer, txt, sha256,
+pdf, md. Das vollständige Handbuch (`docs/HANDBUCH.md`) bleibt im Repo, weil es interne
+Hostnamen enthält.
 
 ### Datenschutzhinweis
 

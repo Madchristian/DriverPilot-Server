@@ -20,6 +20,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from .contract import ERROR_MESSAGES, ContractError, is_uuid
+from .public import Public
 from .ratelimit import SlidingWindow
 from .service import Service
 
@@ -214,8 +215,17 @@ class Api:
 
 def create_api_app(service: Service) -> Starlette:
     api = Api(service)
+    public = Public(service.settings, service.privacy_notice_text)
     prefix = "/api/v1"
     routes = [
+        # Oeffentliche Seiten fuer Menschen (Anleitung, Downloads); alles unter /api/v1 bleibt JSON.
+        Route("/", public.index, methods=["GET"]),
+        Route("/anleitung", public.anleitung, methods=["GET"]),
+        Route("/datenschutz", public.datenschutz, methods=["GET"]),
+        Route("/downloads", public.downloads_redirect, methods=["GET"]),
+        Route("/downloads/", public.downloads, methods=["GET"]),
+        Route("/downloads/{name}", public.download_file, methods=["GET"]),
+        Route("/robots.txt", public.robots, methods=["GET"]),
         Route(f"{prefix}/capabilities", api.capabilities, methods=["GET"]),
         Route(f"{prefix}/pairings/redeem", api.redeem, methods=["POST"]),
         Route(f"{prefix}/cases", api.create_case, methods=["POST"]),
@@ -236,4 +246,5 @@ def create_api_app(service: Service) -> Starlette:
         },
     )
     app.state.api = api
+    app.state.public = public
     return app

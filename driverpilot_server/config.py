@@ -97,6 +97,8 @@ class Settings:
     audit_retention_days: int = 30
 
     public_base_url: str = field(default_factory=lambda: os.environ.get("DP_PUBLIC_BASE_URL", ""))
+    # Release-Dateien des Windows-Clients fuer die oeffentliche Downloadseite (read-only Verzeichnis).
+    downloads_dir: Path = field(default_factory=lambda: Path(os.environ.get("DP_DOWNLOADS_DIR", REPO_DIR / "downloads")))
 
     def __post_init__(self) -> None:
         if self.ai_provider not in ("none", "test", "codex"):
@@ -107,6 +109,7 @@ class Settings:
                 raise ValueError(f"{key}={value} liegt ausserhalb von 1..{ceiling}")
         self.data_dir = Path(self.data_dir)
         self.privacy_notice_file = Path(self.privacy_notice_file)
+        self.downloads_dir = Path(self.downloads_dir)
 
     @property
     def ai_configured(self) -> bool:

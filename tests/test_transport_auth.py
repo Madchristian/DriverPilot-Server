@@ -139,7 +139,7 @@ def test_client_isolation(h, contract):
 
 
 def test_unknown_routes_return_error_object(h):
-    for response in (h.api.get("/api/v1/nope"), h.api.post("/api/v1/cases/abc"), h.api.get("/")):
+    for response in (h.api.get("/api/v1/nope"), h.api.post("/api/v1/cases/abc"), h.api.get("/api/v1/")):
         assert response.status_code == 404
         assert response.json()["error"]["code"] == "not_found"
     assert h.api.get("/healthz").text == "ok"

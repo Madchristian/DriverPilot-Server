@@ -12,153 +12,150 @@ Inhalt:
 5. [Betrieb](#5-betrieb)
 6. [Störungen und Fehlercodes](#6-störungen-und-fehlercodes)
 
----
-
 ## 1. Was das Ganze macht
 
-Ein Freund mit PC-Problem schickt aus DriverPilot einen **bereinigten Diagnosebericht** an
-Christians Server. Christian sieht den Bericht in einer Admin-Ansicht, schreibt (oder lässt von
-ChatGPT vorschreiben) eine Antwort mit Fakten, Vermutungen und konkreten manuellen Schritten
-und **gibt sie frei**. DriverPilot zeigt dem Freund ausschließlich freigegebene Antworten an und
-führt nichts davon selbst aus.
+Ein Freund mit einem PC-Problem schickt aus DriverPilot einen bereinigten Diagnosebericht an
+Christians Server. Christian liest den Bericht in einer Admin-Ansicht, schreibt eine Antwort mit
+Fakten, Vermutungen und konkreten manuellen Schritten (oder lässt sich von ChatGPT einen
+Entwurf vorschreiben) und gibt sie frei. DriverPilot zeigt dem Freund nur freigegebene Antworten
+und führt nichts davon selbst aus.
 
 ```
-Freund (DriverPilot)  ──HTTPS──▶ driverpilot.cstrube.de ──▶ Server auf rpi4-400
-                                                                 │
-Christian (Browser)   ──LAN/Tailnet + Authentik──▶ Admin-Ansicht ┘   optional: ChatGPT-Entwurf
+Freund (DriverPilot)  --HTTPS-->  driverpilot.cstrube.de  -->  Server auf rpi4-400
+Christian (Browser)   --LAN/Tailnet + Authentik-->  Admin-Ansicht auf demselben Server
+Server                --optional-->  ChatGPT (Entwurf, nur mit Zustimmung des Freundes)
 ```
 
-Was der Server **nicht** ist: kein Fernzugriff, keine Remote-Shell, keine Treiberinstallation auf
-Serverbefehl, kein Dauerdienst auf dem PC des Freundes. Der Bericht enthält keine Gerätenamen,
-Seriennummern, Pfade, Ereignistexte oder IP-Adressen; der Server lehnt Berichte ab, in denen so
-etwas erkannt wird.
+Der Server ist kein Fernzugriff und keine Remote-Shell. Er installiert keine Treiber und läuft
+nicht als Dauerdienst auf dem PC des Freundes. Der Bericht enthält keine Gerätenamen,
+Seriennummern, Pfade, Ereignistexte oder IP-Adressen. Erkennt der Server so etwas, lehnt er den
+Bericht ab.
 
-Ein Fall lebt **7 Tage** ab Eingang und wird dann automatisch gelöscht. Der Freund kann ihn
+Ein Fall lebt 7 Tage ab Eingang und wird dann automatisch gelöscht. Der Freund kann ihn
 jederzeit vorher aus DriverPilot löschen.
-
----
 
 ## 2. Für Freunde: Hilfe anfordern
 
 ### 2.1 Was du brauchst
 
-- DriverPilot in einer Version mit dem Bereich **Hilfe von Christian**.
-- Von Christian: die **Serveradresse** `https://driverpilot.cstrube.de` und einen
-  **Einladungscode** (32 Zeichen). Beides kommt per Nachricht von Christian, nicht aus dem Internet.
-- Kein ChatGPT-Konto, kein Abo.
+DriverPilot in einer Version, die den Bereich „Hilfe von Christian“ enthält. Von Christian
+bekommst du die Serveradresse `https://driverpilot.cstrube.de` und einen Einladungscode
+(32 Zeichen), beides per Nachricht. Ein ChatGPT-Konto brauchst du nicht.
 
 ### 2.2 Koppeln (einmalig)
 
-1. In DriverPilot **Hilfe von Christian** öffnen → **Koppeln**.
-2. Serveradresse und Einladungscode eintragen, bestätigen.
-3. DriverPilot bekommt einen Zugang, der **30 Tage** gilt. Der Code ist danach verbraucht
-   (bei Mehrfachcodes: eine Einlösung weniger).
+1. In DriverPilot „Hilfe von Christian“ öffnen und auf „Koppeln“ gehen.
+2. Serveradresse und Einladungscode eintragen und bestätigen.
+3. DriverPilot bekommt einen Zugang, der 30 Tage gilt. Der Code ist danach verbraucht. Bei
+   einem Mehrfachcode ist eine Einlösung weniger übrig.
 
-Wenn der Zugang abgelaufen ist oder Christian ihn widerrufen hat, meldet DriverPilot
-„Zugang ungültig“. Dann einfach einen neuen Code bei Christian holen.
+Ist der Zugang abgelaufen oder hat Christian ihn widerrufen, meldet DriverPilot „Zugang
+ungültig“. Dann holst du dir einen neuen Code bei Christian.
 
 ### 2.3 Bericht senden
 
-1. **Frischen Scan** machen (höchstens 15 Minuten alt; sonst lehnt der Server ab).
-2. Problem beschreiben: Kategorie wählen (WoW-Absturz, PC friert ein, Grafikreset, Leistung,
-   Netzwerk, Addon-Fehler, Sonstiges), Beschreibung, optional Schritte zum Nachstellen und
-   WoW-Angaben (Spielversion, nur in WoW oder auch anderswo, Addon-Test gemacht).
-   Keine E-Mail-Adressen, Links, Dateipfade, Passwörter oder Seriennummern in den Text
-   schreiben, sonst wird der Bericht abgelehnt.
-3. **Vorschau** vollständig lesen. Genau das wird gesendet, nichts anderes.
-4. **Datenschutzhinweis** lesen. Optional das Kästchen **externe KI erlauben** setzen: dann darf
-   Christian den Bericht zusätzlich von ChatGPT (OpenAI) vorbewerten lassen. Ohne Haken
-   bleibt der Bericht auf Christians Server.
-5. **Zustimmen und senden**. Der Fall erscheint als „in Bearbeitung“.
+1. Einen frischen Scan machen. Er darf höchstens 15 Minuten alt sein, sonst lehnt der Server ab.
+2. Das Problem beschreiben: Kategorie wählen (WoW-Absturz, PC friert ein, Grafikreset,
+   Leistung, Netzwerk, Addon-Fehler, Sonstiges), dazu eine Beschreibung. Schritte zum
+   Nachstellen und WoW-Angaben (Spielversion, nur in WoW oder auch anderswo, Addon-Test
+   gemacht) sind freiwillig. E-Mail-Adressen, Links, Dateipfade, Passwörter oder Seriennummern
+   gehören nicht in den Text, sonst wird der Bericht abgelehnt.
+3. Die Vorschau vollständig lesen. Genau das wird gesendet, sonst nichts.
+4. Den Datenschutzhinweis lesen. Wenn du das Kästchen „externe KI erlauben“ setzt, darf
+   Christian den Bericht zusätzlich von ChatGPT (OpenAI) vorbewerten lassen. Ohne Haken bleibt
+   der Bericht auf Christians Server.
+5. „Zustimmen und senden“. Der Fall erscheint als „in Bearbeitung“.
 
-Bei Fehlermeldungen: Abschnitt 6.
+Fehlermeldungen erklärt Abschnitt 6.
 
 ### 2.4 Antwort lesen
 
 Solange der Bereich geöffnet ist, fragt DriverPilot den Server regelmäßig ab. Sobald Christian
-freigegeben hat, erscheint die Antwort mit:
+freigegeben hat, siehst du die Antwort. Sie besteht aus einer Zusammenfassung, aus Fakten, die
+durch Einträge deines Berichts belegt sind, aus Vermutungen, die ausdrücklich unbewiesen sind,
+und aus nächsten Schritten. Jeder Schritt hat eine Begründung, eine Anleitung, eine
+Risikoklasse (nur lesen, rückgängig machbar, nur für Experten), die benötigten Rechte, das
+erwartete Ergebnis und, wo möglich, einen Rückweg. Du führst die Schritte selbst aus.
+Dazu können Rückfragen, Hinweise und Quellenlinks kommen; Links öffnen sich nur auf Klick.
 
-- **Zusammenfassung**
-- **Fakten**: belegt durch Einträge deines Berichts.
-- **Vermutungen**: ausdrücklich unbewiesen.
-- **Nächste Schritte**: jeweils mit Begründung, Anleitung, Risikoklasse (nur lesen /
-  rückgängig machbar / nur für Experten), benötigten Rechten, erwartetem Ergebnis und, wo
-  möglich, Rückweg. Du führst sie selbst aus, DriverPilot tut nichts automatisch.
-- **Rückfragen** und **Hinweise**, optional Quellenlinks (öffnen sich nur auf Klick).
-
-Wenn du inzwischen einen neueren Scan gemacht hast, markiert DriverPilot die Antwort als zu einem
-älteren Scan gehörig. Ein neues Problem oder ein Nachher-Vergleich = neuer Bericht (neuer Fall).
+Hast du inzwischen einen neueren Scan gemacht, markiert DriverPilot die Antwort als zu einem
+älteren Scan gehörig. Für ein neues Problem oder einen Nachher-Vergleich schickst du einen
+neuen Bericht; das wird ein neuer Fall.
 
 ### 2.5 Rückmeldung und Löschen
 
-- **Rückmeldung** zur Antwort: besser / unverändert / schlechter / nicht probiert, plus Notiz.
-  Höchstens zehn je Fall. Löst keine neue KI-Anfrage aus.
-- **Fall löschen**: entfernt Bericht, Entwürfe, Antworten und Rückmeldungen sofort vom Server.
-  Was bereits an ChatGPT übermittelt wurde (nur mit deinem Haken), lässt sich dadurch nicht
-  zurückholen.
+Zu einer Antwort kannst du eine Rückmeldung geben (besser, unverändert, schlechter, nicht
+probiert) und eine Notiz dazu schreiben. Höchstens zehn je Fall. Eine Rückmeldung löst keine
+neue KI-Anfrage aus.
 
----
+„Fall löschen“ entfernt Bericht, Entwürfe, Antworten und Rückmeldungen sofort vom Server. Was
+mit deinem Haken bereits an ChatGPT übermittelt wurde, holt das Löschen nicht zurück.
 
 ## 3. Für Christian: Fälle bearbeiten
 
 ### 3.1 Zugang
 
-Admin-Ansicht: **https://driverpilot.dns-prod-2.local.cstrube.de** (nur LAN oder Tailnet,
-Anmeldung über Authentik, Gruppe `Homelab-Admins`). Aus dem Internet ist sie nicht erreichbar.
+Die Admin-Ansicht liegt unter https://driverpilot.dns-prod-2.local.cstrube.de. Sie ist nur aus
+dem LAN oder dem Tailnet erreichbar, die Anmeldung läuft über Authentik (Gruppe
+`Homelab-Admins`). Aus dem Internet ist sie nicht erreichbar.
 
-Menü: **Fälle** · **Einladungen** · **Zugänge** · **Audit** · **KI (ChatGPT)**. Rechts oben steht
-der angemeldete Benutzer, die Server-UTC und der aktive Adapter.
+Das Menü hat die Seiten Fälle, Einladungen, Zugänge, Audit und KI (ChatGPT). Rechts oben stehen
+der angemeldete Benutzer, die Server-Zeit in UTC und der aktive Adapter.
 
 ### 3.2 Einladung erzeugen und weitergeben
 
-1. **Einladungen** → Bezeichnung (z. B. Name des Freundes), Gültigkeit in Tagen, Anzahl
-   Einlösungen → **Erzeugen**.
-2. Der Code erscheint **genau einmal**. Zusammen mit der Serveradresse per sicherem Kanal
-   (Signal, iMessage, persönlich) weitergeben. Nicht in GitHub-Issues, nicht per E-Mail an Listen.
-3. Empfehlung: pro Freund ein Code mit 1 Einlösung, 1 bis 7 Tage. Für eine Gruppe ein Code mit
-   z. B. 10 Einlösungen und 30 Tagen. Nicht mehr gebrauchte Codes **Widerrufen**.
+Auf der Seite Einladungen trägst du eine Bezeichnung ein (zum Beispiel den Namen des Freundes),
+die Gültigkeit in Tagen und die Anzahl der Einlösungen, dann „Erzeugen“. Der Code erscheint
+genau einmal. Gib ihn zusammen mit der Serveradresse über einen sicheren Kanal weiter (Signal,
+iMessage, persönlich), nicht über GitHub-Issues und nicht per E-Mail an Listen.
 
-Jede Einlösung erzeugt einen eigenen Zugang (30 Tage). Unter **Zugänge** siehst du alle Zugänge
-mit Fallzahl und kannst einzelne **widerrufen**; das wirkt beim nächsten Request des Clients,
-auch für bestehende Fälle.
+Pro Freund reicht ein Code mit einer Einlösung und 1 bis 7 Tagen Gültigkeit. Für eine Gruppe
+passt ein Code mit zum Beispiel 10 Einlösungen und 30 Tagen. Codes, die niemand mehr braucht,
+widerrufst du auf derselben Seite.
+
+Jede Einlösung erzeugt einen eigenen Zugang für 30 Tage. Unter Zugänge siehst du alle Zugänge
+mit ihrer Fallzahl und kannst einzelne widerrufen. Der Widerruf wirkt beim nächsten Request des
+Clients, auch für bestehende Fälle.
 
 ### 3.3 Fallübersicht
 
-**Fälle** zeigt Kennzahlen (offen, warten auf Prüfung, fehlgeschlagen, neue Fälle heute,
-Zugänge, Aufträge, KI-Aufrufe) und die Liste aller nicht abgelaufenen Fälle mit Zustand:
+Die Seite Fälle zeigt Kennzahlen (offen, warten auf Prüfung, fehlgeschlagen, neue Fälle heute,
+Zugänge, Aufträge, KI-Aufrufe) und darunter alle nicht abgelaufenen Fälle mit ihrem Zustand.
 
 | Zustand | Bedeutung | Was du tust |
 |---|---|---|
-| `queued` | wartet auf den KI-Worker (nur mit KI-Haken und aktivem Login) | nichts, oder **Manuell übernehmen** |
-| `analyzing` | KI-Aufruf läuft (bis 300 s) | warten; Aktionen sind gesperrt |
-| `awaiting_review` | wartet auf dich | Entwurf prüfen/schreiben, freigeben |
-| `released` | Revision ist für den Freund sichtbar | ggf. neue Revision |
-| `analysis_failed` | KI-Lauf gescheitert (Grund steht dabei) | **Manuell übernehmen** oder **KI-Neuversuch** |
+| `queued` | wartet auf den KI-Worker (nur mit KI-Haken und aktivem Login) | nichts, oder „Manuell übernehmen“ |
+| `analyzing` | KI-Aufruf läuft (bis 300 s) | warten, Aktionen sind gesperrt |
+| `awaiting_review` | wartet auf dich | Entwurf prüfen oder schreiben, dann freigeben |
+| `released` | eine Revision ist für den Freund sichtbar | bei Bedarf neue Revision |
+| `analysis_failed` | KI-Lauf gescheitert, der Grund steht dabei | „Manuell übernehmen“ oder „KI-Neuversuch“ |
 
 ### 3.4 Fallseite
 
-Oben: IDs, Eingang, Ablauf, Zugang, App-Version, ob externe KI erlaubt ist, Versuche, Version.
-Dann der Bericht in lesbarer Form: Symptom und Freitext, Hardware, Geräte (Modellkennung
-Bus/Vendor/Product, Treiberversion, Problemcode), Befunde (Quelle, Ereignis-ID, Anzahl,
-Zeitraum, Stufe, Gerät), Erfassungsstatus. **Alles außer `complete` im Erfassungsstatus heißt
-Lücke, nicht „unauffällig“.** Unten als Ausklapper der rohe JSON-Bericht.
+Oben stehen IDs, Eingang, Ablauf, Zugang, App-Version, ob externe KI erlaubt ist, die Zahl der
+Versuche und die Version des Falls. Darunter folgt der Bericht in lesbarer Form: Symptom und
+Freitext, Hardware, Geräte (Modellkennung mit Bus, Vendor und Product, Treiberversion,
+Problemcode), Befunde (Quelle, Ereignis-ID, Anzahl, Zeitraum, Stufe, Gerät) und der
+Erfassungsstatus. Alles außer `complete` im Erfassungsstatus ist eine Lücke, kein unauffälliger
+Befund. Ganz unten lässt sich der rohe JSON-Bericht ausklappen.
 
-Aktionen oben:
+Die Aktionen oben auf der Seite:
 
-- **Manuell übernehmen** (aus `queued` oder `analysis_failed`): entwertet einen offenen
-  KI-Auftrag, Fall geht auf `awaiting_review`.
-- **KI-Neuversuch (budgetiert)**: nur wenn der Freund externe KI erlaubt hat und der Adapter
-  angemeldet ist. Zählt gegen das Tagesbudget.
-- **Fall löschen**: alles weg, wie beim Löschen durch den Freund.
+- „Manuell übernehmen“ geht aus `queued` oder `analysis_failed`. Ein offener KI-Auftrag wird
+  entwertet, der Fall steht danach auf `awaiting_review`.
+- „KI-Neuversuch (budgetiert)“ gibt es nur, wenn der Freund externe KI erlaubt hat und der
+  Adapter angemeldet ist. Der Versuch zählt gegen das Tagesbudget.
+- „Fall löschen“ entfernt alles, genau wie das Löschen durch den Freund.
 
 ### 3.5 Entwurf schreiben oder prüfen
 
-Der Bereich **Entwurf** zeigt entweder den **KI-ENTWURF** (orange Warnung: ungeprüft), deinen
-zuletzt gespeicherten Entwurf oder eine leere Vorlage. Bearbeitet wird im JSON-Feld. Felder:
+Der Bereich Entwurf zeigt entweder den KI-Entwurf (mit oranger Warnung, dass er ungeprüft
+ist), deinen zuletzt gespeicherten Entwurf oder eine leere Vorlage. Bearbeitet wird im
+JSON-Feld. So sieht ein Entwurf aus:
 
 ```json
 {
-  "summary": "Kurzfassung in 1–2000 Zeichen.",
+  "summary": "Kurzfassung in 1 bis 2000 Zeichen.",
   "facts": [
     {"id": "fact-1", "text": "Belegte Aussage.",
      "references": [{"kind": "finding", "id": "f-001"},
@@ -174,86 +171,89 @@ zuletzt gespeicherten Entwurf oder eine leere Vorlage. Bearbeitet wird im JSON-F
      "expected_outcome": "Woran man den Erfolg erkennt.", "rollback": null, "abort_condition": null}
   ],
   "open_questions": ["Rückfrage, wenn Daten fehlen."],
-  "warnings": ["Z. B.: kein BIOS-Update ohne Rücksprache."],
+  "warnings": ["Zum Beispiel: kein BIOS-Update ohne Rücksprache."],
   "sources": [{"title": "Offizielle Seite", "url": "https://..."}]
 }
 ```
 
-Regeln, die der Server beim Speichern erzwingt:
+Beim Speichern prüft der Server diese Regeln:
 
-- Jeder Fakt braucht mindestens einen Beleg: eine `finding`-/`device`-ID **aus diesem Bericht**
-  oder einen Feldzeiger (`/hardware/...`, `/symptom/...`, `/collection/...`).
-- Vermutungen haben `proven: false` und verweisen auf Fakt-IDs. Keine Prozentwerte.
-- `risk_class`: `read_only` | `reversible_change` | `expert_only`.
-  `required_privileges`: `none` | `standard_user` | `administrator`.
-- Nur Text. Kein Markdown, kein HTML, keine Skripte oder Befehle. Quellen nur `https://`,
-  ohne Port und Benutzerangabe, nur offizielle Hersteller-/Microsoft-/Blizzard-Seiten.
-- Längen: summary 2000, Texte 1000, Anleitung 4000, Titel 200 Zeichen; Gesamtergebnis ≤ 64 KiB.
+- Jeder Fakt braucht mindestens einen Beleg: eine `finding`- oder `device`-ID aus diesem
+  Bericht oder einen Feldzeiger wie `/hardware/...`, `/symptom/...` oder `/collection/...`.
+- Vermutungen haben `proven: false` und verweisen auf Fakt-IDs. Prozentwerte gibt es nicht.
+- `risk_class` ist `read_only`, `reversible_change` oder `expert_only`. `required_privileges`
+  ist `none`, `standard_user` oder `administrator`.
+- Nur Text. Kein Markdown, kein HTML, keine Skripte oder Befehle. Quellen nur mit `https://`,
+  ohne Port und Benutzerangabe, und nur offizielle Seiten der Hersteller, von Microsoft oder
+  Blizzard.
+- Längen: summary 2000 Zeichen, Texte 1000, Anleitung 4000, Titel 200. Das Gesamtergebnis
+  darf 64 KiB nicht überschreiten.
 
-**Entwurf speichern und prüfen** validiert und zeigt Verstöße als Liste. Hinweise mit
-„(Hinweis, keine Sperre)“ sind nur Warnungen (z. B. Textmarker). Das Kästchen „beruht auf
+„Entwurf speichern und prüfen“ validiert und listet Verstöße auf. Einträge mit dem Zusatz
+„(Hinweis, keine Sperre)“ sind nur Warnungen, etwa bei Textmarkern. Das Kästchen „beruht auf
 einem KI-Entwurf“ steuert die Herkunftsangabe im Ergebnis (`human` oder
-`ai_assisted_human_reviewed`); bei einem bearbeiteten KI-Entwurf angehakt lassen.
+`ai_assisted_human_reviewed`). Bei einem bearbeiteten KI-Entwurf lässt du es angehakt.
 
 ### 3.6 Freigeben
 
-**Revision N freigeben** erscheint, sobald ein gültiger Entwurf gespeichert ist und der Fall in
-`awaiting_review` oder `released` steht. Nach Bestätigung:
+Der Knopf „Revision N freigeben“ erscheint, sobald ein gültiger Entwurf gespeichert ist und der
+Fall in `awaiting_review` oder `released` steht. Nach der Bestätigung ist die Revision
+unveränderlich und für den Freund sichtbar. Sie ist an Fall-ID, Scan-ID und den Hash des
+Berichts gebunden; der Client prüft das.
 
-- Die Revision ist **unveränderlich** und für den Freund sichtbar (gebunden an Fall-ID, Scan-ID
-  und Berichts-Hash; der Client prüft das).
-- Änderungen danach = neuen Entwurf speichern und als **Revision N+1** freigeben; bis dahin
-  bleibt die alte sichtbar.
-- Wurde der Fall zwischenzeitlich geändert (z. B. zweiter Browser-Tab), lehnt der Server mit
-  „zwischenzeitlich geändert, Seite neu laden“ ab.
+Willst du später etwas ändern, speicherst du einen neuen Entwurf und gibst ihn als Revision N+1
+frei. Bis dahin bleibt die alte Revision sichtbar. Wurde der Fall zwischenzeitlich geändert, zum
+Beispiel in einem zweiten Browser-Tab, lehnt der Server ab und bittet dich, die Seite neu zu
+laden.
 
-Unter **Freigegebene Revisionen** siehst du jede Revision so, wie der Freund sie bekommt.
-**Rückmeldungen** des Freunds stehen darunter mit Bezug auf die Revision.
-
----
+Unter „Freigegebene Revisionen“ siehst du jede Revision so, wie der Freund sie bekommt. Die
+Rückmeldungen des Freundes stehen darunter mit Bezug auf die jeweilige Revision.
 
 ## 4. KI-Entwürfe über ChatGPT
 
 ### 4.1 Wie es funktioniert
 
-Adapter `codex`: der Server spricht das ChatGPT-Backend über denselben OAuth-Weg wie die
-Codex-CLI an, mit Christians persönlichem ChatGPT-Konto. Nur Fälle, bei denen der Freund
-**externe KI erlaubt** hat, landen in der Warteschlange. Der Worker sendet den Bericht als reine
-Daten mit festen Anweisungen (`store=false`), prüft die Antwort gegen Schema und Belegregeln
-und legt sie als **KI-Entwurf** ab. Nichts davon geht ungeprüft an den Freund.
+Der Adapter `codex` spricht das ChatGPT-Backend über denselben OAuth-Weg an wie die Codex-CLI,
+mit Christians persönlichem ChatGPT-Konto. In die Warteschlange kommen nur Fälle, bei denen der
+Freund externe KI erlaubt hat. Der Worker schickt den Bericht als reine Daten mit festen
+Anweisungen an das Modell (`store=false`), prüft die Antwort gegen Schema und Belegregeln und
+legt sie als KI-Entwurf ab. An den Freund geht davon nichts ohne Prüfung.
 
-Grenzen: ein Aufruf gleichzeitig, höchstens zwei automatische Versuche je Fall, 300 s Timeout
-je Versuch, Tagesbudget `DP_AI_DAILY_CALLS` (Default 10). Ein Timeout gilt als
-„Ausgang unbekannt“ und wird **nicht** automatisch wiederholt (kein doppeltes Abrechnen); du
-entscheidest per **KI-Neuversuch** oder **Manuell übernehmen**.
+Es läuft höchstens ein Aufruf gleichzeitig, mit höchstens zwei automatischen Versuchen je Fall
+und 300 s Timeout je Versuch. Das Tagesbudget steht in `DP_AI_DAILY_CALLS` (Default 10). Ein
+Timeout gilt als „Ausgang unbekannt“ und wird nicht automatisch wiederholt, damit nichts
+doppelt abgerechnet wird. Du entscheidest dann per „KI-Neuversuch“ oder „Manuell übernehmen“.
 
-Gemessen am 2026-10-01: gpt-5.6-sol braucht für einen vollständigen Bericht etwa 2–3 Minuten
-und rund 7.000 Tokens.
+Gemessen am 2026-10-01: gpt-5.6-sol braucht für einen vollständigen Bericht etwa 2 bis 3
+Minuten und rund 7.000 Tokens.
 
 ### 4.2 Seite „KI (ChatGPT)“
 
-- **Status**: angemeldet?, Konto, Token-Ablauf (wird automatisch erneuert), letzter Fehler,
-  Modell, ob die KI den Clients angeboten wird, Aufrufe heute.
-- **Mit ChatGPT anmelden (Device-Code)**: Code wird angezeigt, auf
-  `https://auth.openai.com/codex/device` eingeben, Seite neu laden. Gilt 15 Minuten.
-- **auth.json übernehmen**: Inhalt einer `~/.codex/auth.json` einfügen (Alternative zum
-  Device-Login; so wurde am 2026-10-01 der Token des Homelab-Dashboards übernommen).
-- **Abmelden**: löscht die Tokendatei; der Server fällt sofort in den manuellen Modus.
+Der Status zeigt, ob der Server angemeldet ist, das Konto, den Ablauf des Access-Tokens (er wird
+automatisch erneuert), den letzten Fehler, das Modell, ob die KI den Clients angeboten wird und
+die Aufrufe des Tages.
 
-Ohne Login meldet `/capabilities` `external_ai_offered=false`: DriverPilot blendet die
-KI-Option aus, alle Fälle laufen manuell. Fälle, die vorher mit KI-Haken in `queued` standen,
-bleiben dort, bis ein Login da ist oder du sie übernimmst.
+„Mit ChatGPT anmelden (Device-Code)“ zeigt einen Code an. Den gibst du auf
+`https://auth.openai.com/codex/device` ein und lädst die Seite danach neu. Der Code gilt 15
+Minuten. Als Alternative kannst du den Inhalt einer `~/.codex/auth.json` einfügen; so wurde am
+2026-10-01 der Token des Homelab-Dashboards übernommen. „Abmelden“ löscht die Tokendatei, und
+der Server fällt sofort in den manuellen Modus.
+
+Ohne Login meldet `/capabilities` `external_ai_offered=false`. DriverPilot blendet die
+KI-Option dann aus und alle Fälle laufen manuell. Fälle, die vorher mit KI-Haken in `queued`
+standen, bleiben dort, bis ein Login da ist oder du sie übernimmst.
 
 ### 4.3 Hinweise
 
-- Dashboard und Ferndiagnose-Server teilen sich derzeit denselben Refresh-Token. Verliert
-  einer der beiden die Anmeldung (Token-Rotation), Tokendatei neu kopieren oder hier einen
-  eigenen Device-Login machen.
-- In den ChatGPT-Kontoeinstellungen muss „Das Modell für alle verbessern“ aus sein; der
-  Datenschutzhinweis sagt das so zu.
-- Modell und Reasoning: `DP_CODEX_MODEL`, `DP_CODEX_REASONING` in `.env` (Neustart nötig).
+Dashboard und Ferndiagnose-Server teilen sich derzeit denselben Refresh-Token. Verliert einer
+der beiden die Anmeldung, etwa durch Token-Rotation, kopierst du die Tokendatei neu oder machst
+hier einen eigenen Device-Login.
 
----
+In den ChatGPT-Kontoeinstellungen muss „Das Modell für alle verbessern“ aus sein. Der
+Datenschutzhinweis sagt das so zu.
+
+Modell und Reasoning stellst du über `DP_CODEX_MODEL` und `DP_CODEX_REASONING` in `.env` ein.
+Danach ist ein Neustart nötig.
 
 ## 5. Betrieb
 
@@ -261,12 +261,14 @@ bleiben dort, bis ein Login da ist oder du sie übernimmst.
 
 | Was | Wo |
 |---|---|
-| Server | `rpi4-400` (10.0.30.3), Docker Compose, `~/driverpilot-server` (Clone von GitHub, read-only Deploy-Key) |
-| Daten | `~/driverpilot-server/data/` (SQLite `driverpilot.sqlite3`, `server.secret`, `codex-auth.json`), uid 10001, 0700. **Nicht in Backups.** |
-| Konfiguration | `~/driverpilot-server/.env` (Vorlage `.env.example`) |
-| Öffentliche API | `https://driverpilot.cstrube.de/api/v1` ← Cloudflare (proxied, `records.tf`) ← TrueNAS-Traefik `dynamic/driverpilot.yml` (`cloudflare-only`, CrowdSec, Rate-Limit) ← `10.0.30.3:8140` |
-| Admin | `https://driverpilot.dns-prod-2.local.cstrube.de` ← Pi-Traefik `~/traefik/data/config.yml` (`agent-secured` + `sso`) ← `10.0.30.3:8141` |
-| Repo / Logbuch | `github.com/Madchristian/DriverPilot-Server`, `STATUS.md`; Auftrag DriverPilot Issue #19 |
+| Server | `rpi4-400` (10.0.30.3), Docker Compose in `~/driverpilot-server`, Clone von GitHub mit read-only Deploy-Key |
+| Daten | `~/driverpilot-server/data/` mit SQLite `driverpilot.sqlite3`, `server.secret` und `codex-auth.json`; uid 10001, Rechte 0700; nicht in Backups |
+| Downloads | `~/driverpilot-server/downloads/`, wird read-only als `/downloads` in den Container gereicht und unter `/downloads/` veröffentlicht |
+| Konfiguration | `~/driverpilot-server/.env`, Vorlage ist `.env.example` |
+| Öffentliche API | `https://driverpilot.cstrube.de/api/v1`. Der Weg: Cloudflare (proxied, `records.tf`), dann TrueNAS-Traefik mit `dynamic/driverpilot.yml` (`cloudflare-only`, CrowdSec, Rate-Limit), dann `10.0.30.3:8140` |
+| Öffentliche Seiten | `https://driverpilot.cstrube.de/` mit Anleitung, Datenschutzhinweis und Downloads, gleicher Weg wie die API |
+| Admin | `https://driverpilot.dns-prod-2.local.cstrube.de`. Der Weg: Pi-Traefik mit `~/traefik/data/config.yml` (`agent-secured` und `sso`), dann `10.0.30.3:8141` |
+| Repo und Logbuch | `github.com/Madchristian/DriverPilot-Server`, dort `STATUS.md`; der Auftrag ist DriverPilot Issue #19 |
 
 ### 5.2 Tägliche Handgriffe
 
@@ -279,8 +281,8 @@ curl -s http://127.0.0.1:8140/readyz     # "ready" = DB schreibbar
 curl -s http://127.0.0.1:8140/api/v1/capabilities | head -c 300
 ```
 
-Von außen prüfen: `curl -s https://driverpilot.cstrube.de/api/v1/capabilities`.
-Direkt am Origin ohne Cloudflare muss 403 kommen (Origin-Lock).
+Von außen prüfst du mit `curl -s https://driverpilot.cstrube.de/api/v1/capabilities`. Direkt am
+Origin ohne Cloudflare muss 403 kommen, das ist der Origin-Lock.
 
 ### 5.3 Update und Rollback
 
@@ -291,11 +293,19 @@ git log --oneline -5
 git checkout <alter-commit> && docker compose up -d --build   # Rollback
 ```
 
-Das Datenbankschema wird nur ergänzt (`CREATE TABLE IF NOT EXISTS`), ein älterer Stand läuft
-mit einer neueren Datenbank weiter. Ein Neustart verliert keine angenommenen Fälle; laufende
-KI-Aufrufe werden beim Start als `analysis_failed` / `outcome_unknown` markiert.
+Das Datenbankschema wird nur ergänzt (`CREATE TABLE IF NOT EXISTS`), darum läuft ein älterer
+Stand auch mit einer neueren Datenbank. Ein Neustart verliert keine angenommenen Fälle. Laufende
+KI-Aufrufe markiert der Server beim Start als `analysis_failed` mit Grund `outcome_unknown`.
 
-### 5.4 Einstellungen in `.env`
+### 5.4 Release-Dateien veröffentlichen
+
+`deploy/publish-release.sh v0.3.4` lädt die Dateien eines DriverPilot-Releases mit `gh`
+herunter, prüft sie gegen `SHA256SUMS.txt` und kopiert sie nach
+`rpi4-400:~/driverpilot-server/downloads/`. Das Skript läuft auf `dns-prod-2`, weil dort `gh`
+mit Zugriff auf das private Repo eingerichtet ist. Die Seite `/downloads/` zeigt danach die
+neuen Dateien mit Größe und SHA-256; der Container muss dafür nicht neu starten.
+
+### 5.5 Einstellungen in `.env`
 
 | Variable | Bedeutung |
 |---|---|
@@ -303,36 +313,40 @@ KI-Aufrufe werden beim Start als `analysis_failed` / `outcome_unknown` markiert.
 | `DP_ADMIN_TRUSTED_PROXIES` | Proxys, deren Authentik-Header gelten (`10.0.30.5,10.0.20.162`; die Pi erreicht die .3 über VLAN20) |
 | `DP_ADMIN_GROUP` | Authentik-Gruppe (`Homelab-Admins`) |
 | `DP_PUBLIC_BASE_URL` | wird mit dem Einladungscode angezeigt |
-| `DP_PRIVACY_NOTICE_VERSION` / `_FILE` | **bei jeder Textänderung Version anheben**; alte Zustimmungen werden abgelehnt, DriverPilot holt eine neue |
-| `DP_AI_PROVIDER` | `none` / `test` / `codex` |
+| `DP_PRIVACY_NOTICE_VERSION` und `DP_PRIVACY_NOTICE_FILE` | bei jeder Textänderung die Version anheben; alte Zustimmungen werden abgelehnt und DriverPilot holt eine neue |
+| `DP_DOWNLOADS_DIR` | Verzeichnis der Release-Dateien im Container (Default `/downloads`) |
+| `DP_AI_PROVIDER` | `none`, `test` oder `codex` |
 | `DP_CODEX_MODEL`, `DP_CODEX_REASONING` | Modellwahl |
 | `DP_AI_DAILY_CALLS`, `DP_AI_TIMEOUT_SECONDS` | Budget und Timeout |
-| `DP_MAX_NEW_CASES_PER_CLIENT_PER_DAY` (5), `DP_MAX_NEW_CASES_GLOBAL_PER_DAY` (30), `DP_MAX_OPEN_CASES_GLOBAL` (100), `DP_CLIENT_REQUESTS_PER_MINUTE` (30) | Limits; dürfen nur verschärft werden |
+| `DP_MAX_NEW_CASES_PER_CLIENT_PER_DAY` (5), `DP_MAX_NEW_CASES_GLOBAL_PER_DAY` (30), `DP_MAX_OPEN_CASES_GLOBAL` (100), `DP_CLIENT_REQUESTS_PER_MINUTE` (30) | Limits, sie dürfen nur verschärft werden |
 
 Änderungen wirken nach `docker compose up -d`.
 
-### 5.5 Datenschutzhinweis ändern
+### 5.6 Datenschutzhinweis ändern
 
-1. `privacy_notice.txt` im Repo ändern (Empfänger, Zweck, KI-Anbieter, Löschfrist).
-2. `DP_PRIVACY_NOTICE_VERSION` in `.env` auf einen neuen Wert (z. B. Datum.Zähler).
-3. Commit, Push, auf der Pi `git pull && docker compose up -d --build`.
+Zuerst `privacy_notice.txt` im Repo anpassen (Empfänger, Zweck, KI-Anbieter, Löschfrist). Dann
+`DP_PRIVACY_NOTICE_VERSION` in `.env` auf einen neuen Wert setzen, zum Beispiel Datum und Zähler.
+Zum Schluss committen, pushen und auf der Pi `git pull && docker compose up -d --build`
+ausführen.
 
-### 5.6 Bereinigung, Audit, Logs
+### 5.7 Bereinigung, Audit, Logs
 
-- Stündlich: abgelaufene Fälle physisch löschen (SQLite `secure_delete` + WAL-Checkpoint),
-  Tombstones nach Ablauf des Zugangs, Audit nach 30 Tagen, verbrauchte Einladungen.
-- **Audit** (Admin-Seite): wer hat wann was mit welchem Fall gemacht; kein Berichtinhalt.
-- Container-Log: Start/Stop, Worker, Warnungen; nie Bodies, Tokens, Einladungen oder
-  Modellantworten. Codex-Aufrufe erscheinen nur als Länge/Tokenverbrauch.
+Stündlich löscht der Server abgelaufene Fälle physisch (SQLite `secure_delete` plus
+WAL-Checkpoint), dazu Tombstones nach Ablauf des Zugangs, Audit-Einträge nach 30 Tagen und
+verbrauchte Einladungen.
 
-### 5.7 Vertrag aktualisieren
+Die Admin-Seite Audit zeigt, wer wann was mit welchem Fall gemacht hat, ohne Berichtinhalt.
 
-Der Vertrag liegt unter `contract/v1` als byte-exakte Kopie aus dem DriverPilot-Repo
-(`contract/CONTRACT_SOURCE` nennt den Commit). Änderungen immer zuerst dort per PR
-abstimmen, dann `v1/` ersetzen, `CONTRACT_SOURCE` aktualisieren,
-`.venv/bin/python contract/validate_contract.py contract/v1` und `pytest` laufen lassen.
+Das Container-Log enthält Start und Stop, Worker-Meldungen und Warnungen. Bodies, Tokens,
+Einladungen und Modellantworten stehen nie im Log. Codex-Aufrufe erscheinen nur mit Länge und
+Tokenverbrauch.
 
----
+### 5.8 Vertrag aktualisieren
+
+Der Vertrag liegt unter `contract/v1` als byte-exakte Kopie aus dem DriverPilot-Repo;
+`contract/CONTRACT_SOURCE` nennt den Commit. Änderungen stimmst du zuerst dort per PR ab. Dann
+ersetzt du `v1/`, aktualisierst `CONTRACT_SOURCE` und lässt
+`.venv/bin/python contract/validate_contract.py contract/v1` und `pytest` laufen.
 
 ## 6. Störungen und Fehlercodes
 
@@ -341,33 +355,33 @@ abstimmen, dann `v1/` ersetzen, `CONTRACT_SOURCE` aktualisieren,
 | Code | Bedeutung | Abhilfe |
 |---|---|---|
 | `invitation_invalid` | Code unbekannt, abgelaufen, verbraucht oder widerrufen | neuen Code von Christian |
-| `token_invalid` | Zugang fehlt, abgelaufen (30 Tage) oder widerrufen | neu koppeln mit neuem Code |
+| `token_invalid` | Zugang fehlt, nach 30 Tagen abgelaufen oder widerrufen | mit neuem Code neu koppeln |
 | `scan_too_old` | Scan älter als 15 Minuten | neuen Scan, erneut senden |
-| `clock_skew` | PC-Uhr geht mehr als 5 Minuten vor | Datum/Uhrzeit am PC prüfen |
-| `privacy_notice_outdated` | Hinweis wurde geändert | DriverPilot zeigt den neuen Text, erneut zustimmen |
-| `text_rejected` | E-Mail, Link, Pfad, Passwort-/Seriennummer-Angabe o. ä. im Text | Text umformulieren |
-| `daily_case_limit_reached` | 5 Fälle heute | morgen wieder |
-| `capacity_exhausted` / `service_unavailable` | Server voll oder nicht bereit, nichts gespeichert | später erneut, ggf. Christian fragen |
+| `clock_skew` | PC-Uhr geht mehr als 5 Minuten vor | Datum und Uhrzeit am PC prüfen |
+| `privacy_notice_outdated` | der Hinweis wurde geändert | DriverPilot zeigt den neuen Text, erneut zustimmen |
+| `text_rejected` | E-Mail, Link, Pfad, Passwort- oder Seriennummernangabe im Text | Text umformulieren |
+| `daily_case_limit_reached` | heute schon 5 Fälle | morgen wieder |
+| `capacity_exhausted` oder `service_unavailable` | Server voll oder nicht bereit, nichts gespeichert | später erneut, sonst Christian fragen |
 | `rate_limited` | zu viele Anfragen | kurz warten (Retry-After) |
 | `not_found` | Fall gelöscht, abgelaufen oder gehört nicht zu diesem Zugang | neuen Bericht senden |
-| `schema_violation` / `unsupported_schema_version` | Client und Server passen nicht zusammen | DriverPilot aktualisieren, sonst Christian |
+| `schema_violation` oder `unsupported_schema_version` | Client und Server passen nicht zusammen | DriverPilot aktualisieren, sonst Christian |
 
-Eine Übersicht aller Codes: `contract/v1/errors.json`.
+Alle Codes stehen in `contract/v1/errors.json`.
 
 ### 6.2 Typische Serverprobleme
 
 | Symptom | Ursache | Abhilfe |
 |---|---|---|
-| Admin-Seite: „Zugriff verweigert“ trotz Authentik-Login | Request kommt nicht von einem Proxy in `DP_ADMIN_TRUSTED_PROXIES` oder Gruppe fehlt | `.env` prüfen; Pi-Routing (`ip route get 10.0.30.3` auf dns-prod-2) |
-| `external_ai_offered=false` obwohl Adapter `codex` | nicht angemeldet oder Token-Refresh gescheitert | Seite „KI (ChatGPT)“: Status/letzter Fehler, neu anmelden |
-| Fälle bleiben in `queued` | kein Login oder Worker steht | Login prüfen; `docker compose logs`; notfalls **Manuell übernehmen** |
-| `analysis_failed` / `outcome_unknown` | Timeout (300 s) oder Neustart während des Aufrufs | **KI-Neuversuch** oder manuell |
-| `analysis_failed` / `output_rejected` | Modellantwort verletzt Schema/Belege | manuell; Log zeigt Status/Content-Type, nie Inhalt |
-| `analysis_failed` / `budget_exhausted` | Tagesbudget erreicht | morgen oder `DP_AI_DAILY_CALLS` erhöhen |
-| `analysis_failed` / `provider_unavailable` | Netz/429/5xx bei OpenAI, 2 Versuche verbraucht | später **KI-Neuversuch** |
+| Admin-Seite meldet „Zugriff verweigert“ trotz Authentik-Login | der Request kommt nicht von einem Proxy in `DP_ADMIN_TRUSTED_PROXIES`, oder die Gruppe fehlt | `.env` prüfen; Routing der Pi mit `ip route get 10.0.30.3` auf dns-prod-2 |
+| `external_ai_offered=false` trotz Adapter `codex` | nicht angemeldet oder Token-Refresh gescheitert | Seite „KI (ChatGPT)“: Status und letzter Fehler, neu anmelden |
+| Fälle bleiben in `queued` | kein Login, oder der Worker steht | Login prüfen, `docker compose logs`, sonst „Manuell übernehmen“ |
+| `analysis_failed` mit `outcome_unknown` | Timeout (300 s) oder Neustart während des Aufrufs | „KI-Neuversuch“ oder manuell |
+| `analysis_failed` mit `output_rejected` | die Modellantwort verletzt Schema oder Belege | manuell; das Log zeigt Status und Content-Type, nie den Inhalt |
+| `analysis_failed` mit `budget_exhausted` | Tagesbudget erreicht | morgen, oder `DP_AI_DAILY_CALLS` erhöhen |
+| `analysis_failed` mit `provider_unavailable` | Netz, 429 oder 5xx bei OpenAI, beide Versuche verbraucht | später „KI-Neuversuch“ |
 | `readyz` liefert `not ready` | Datenbank nicht schreibbar (Disk voll, Rechte) | `df -h`, Rechte von `data/` (uid 10001, 0700) |
-| Von außen 403 | Request geht nicht über Cloudflare | DNS prüfen (`dig driverpilot.cstrube.de` → Cloudflare-IPs) |
-| Von außen 522/524 | Traefik auf TrueNAS erreicht `10.0.30.3:8140` nicht | Container auf der Pi, `docker compose ps`; Traefik-Datei `dynamic/driverpilot.yml` |
+| von außen 403 | der Request geht nicht über Cloudflare | DNS prüfen: `dig driverpilot.cstrube.de` muss Cloudflare-IPs liefern |
+| von außen 522 oder 524 | Traefik auf der TrueNAS erreicht `10.0.30.3:8140` nicht | Container auf der Pi mit `docker compose ps`; Traefik-Datei `dynamic/driverpilot.yml` |
 
 ### 6.3 Notfall: alles aus
 
@@ -375,6 +389,6 @@ Eine Übersicht aller Codes: `contract/v1/errors.json`.
 cd ~/driverpilot-server && docker compose down     # API und Admin sofort weg, Daten bleiben in data/
 ```
 
-Öffentliche Route still legen: auf der TrueNAS `dynamic/driverpilot.yml` umbenennen
-(Traefik lädt das Verzeichnis live). Einladungen und Zugänge lassen sich jederzeit in der
-Admin-Ansicht widerrufen.
+Die öffentliche Route legst du still, indem du auf der TrueNAS `dynamic/driverpilot.yml`
+umbenennst; Traefik lädt das Verzeichnis live. Einladungen und Zugänge widerrufst du jederzeit
+in der Admin-Ansicht.

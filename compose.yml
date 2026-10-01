@@ -22,6 +22,8 @@ services:
       - "8141:8141"
     volumes:
       - ./data:/data
+      # Release-Dateien des Windows-Clients (deploy/publish-release.sh), read-only.
+      - ./downloads:/downloads:ro
     read_only: true
     tmpfs:
       - /tmp:size=16m

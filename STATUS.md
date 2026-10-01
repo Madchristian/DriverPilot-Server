@@ -17,7 +17,8 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 
 ## Etappen
 
-- [x] Handbuch für Freunde, Christian und Betrieb: `docs/HANDBUCH.md`
+- [x] Handbuch für Freunde, Christian und Betrieb: `docs/HANDBUCH.md` (nach Humanizer-Regeln überarbeitet)
+- [x] Öffentliche Seiten auf `https://driverpilot.cstrube.de/`: Anleitung für Freunde (`docs/public/anleitung.md`), Datenschutzhinweis, Downloads der Release-Dateien (`deploy/publish-release.sh`); Release v0.3.4 liegt bereit, enthält „Hilfe von Christian“ noch nicht
 
 - [x] Vertrag vendoren, Validator grün (`11 schemas, 27 error codes, 22 valid, 38 invalid`)
 - [x] Server implementiert (API, Admin, Worker, Bereinigung), 94 Tests grün (inkl. Codex-Adapter gegen nachgebildetes Backend); Dependabot-Meldungen behoben (starlette 1.7, python-multipart 0.0.32, pytest 9.1)
