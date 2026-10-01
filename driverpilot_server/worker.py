@@ -50,6 +50,9 @@ class TestAdapter:
         self.mode = mode or os.environ.get("DP_TEST_ADAPTER_MODE", "ok")
         self.delay = delay
 
+    def available(self) -> bool:
+        return True
+
     def analyze(self, report: dict) -> AdapterResult:
         if self.delay:
             import time
@@ -109,11 +112,17 @@ class TestAdapter:
         return AdapterResult(content, self.model, self.prompt_version, {"input_tokens": 0, "output_tokens": 0})
 
 
-def build_adapter(provider: str, **kwargs):
+def build_adapter(provider: str, settings=None, **kwargs):
     if provider == "none":
         return None
     if provider == "test":
         return TestAdapter(**kwargs)
+    if provider == "codex":
+        from .codex import CodexAdapter, CodexAuth
+
+        auth = CodexAuth(settings.data_dir, settings.codex_issuer, settings.codex_client_id)
+        return CodexAdapter(auth, settings.codex_base_url, settings.codex_model, settings.codex_reasoning or None,
+                            timeout=settings.ai_timeout_seconds)
     raise ValueError(f"unbekannter Adapter {provider}")
 
 
@@ -130,7 +139,7 @@ class Worker:
 
     async def run_once(self) -> bool:
         """Bearbeitet hoechstens einen Auftrag. True, wenn einer bearbeitet wurde."""
-        if self.adapter is None:
+        if self.adapter is None or not self.adapter.available():
             return False
         leased = self.service.lease_job(self.worker_id)
         if leased is None:

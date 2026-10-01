@@ -61,13 +61,18 @@ class Settings:
     # Nur fuer lokale Entwicklung/Tests: Adminzugang ohne Proxy-Identitaet als dieser Benutzer.
     admin_dev_user: str = field(default_factory=lambda: os.environ.get("DP_ADMIN_DEV_USER", ""))
 
-    privacy_notice_version: str = field(default_factory=lambda: os.environ.get("DP_PRIVACY_NOTICE_VERSION", "2026-10-01.1"))
+    privacy_notice_version: str = field(default_factory=lambda: os.environ.get("DP_PRIVACY_NOTICE_VERSION", "2026-10-01.2"))
     privacy_notice_file: Path = field(
         default_factory=lambda: Path(os.environ.get("DP_PRIVACY_NOTICE_FILE", REPO_DIR / "privacy_notice.txt"))
     )
 
-    # Modelladapter: none (Default, rein manuell) | test (synthetischer Testadapter, klar markiert).
+    # Modelladapter: none (Default, rein manuell) | test (synthetisch, klar markiert) | codex (ChatGPT-OAuth).
     ai_provider: str = field(default_factory=lambda: os.environ.get("DP_AI_PROVIDER", "none"))
+    codex_model: str = field(default_factory=lambda: os.environ.get("DP_CODEX_MODEL", "gpt-5.6-sol"))
+    codex_reasoning: str = field(default_factory=lambda: os.environ.get("DP_CODEX_REASONING", ""))
+    codex_client_id: str = field(default_factory=lambda: os.environ.get("DP_CODEX_OAUTH_CLIENT_ID", "app_EMoamEEZ73f0CkXaXp7hrann"))
+    codex_issuer: str = field(default_factory=lambda: os.environ.get("DP_CODEX_OAUTH_ISSUER", "https://auth.openai.com"))
+    codex_base_url: str = field(default_factory=lambda: os.environ.get("DP_CODEX_BASE_URL", "https://chatgpt.com/backend-api/codex"))
     ai_daily_calls: int = field(default_factory=lambda: _env_int("DP_AI_DAILY_CALLS", 10))
     ai_timeout_seconds: int = field(default_factory=lambda: _env_int("DP_AI_TIMEOUT_SECONDS", 90))
     ai_max_attempts: int = field(default_factory=lambda: _env_int("DP_AI_MAX_ATTEMPTS", 2))
@@ -94,8 +99,8 @@ class Settings:
     public_base_url: str = field(default_factory=lambda: os.environ.get("DP_PUBLIC_BASE_URL", ""))
 
     def __post_init__(self) -> None:
-        if self.ai_provider not in ("none", "test"):
-            raise ValueError(f"DP_AI_PROVIDER unbekannt: {self.ai_provider!r} (erlaubt: none, test)")
+        if self.ai_provider not in ("none", "test", "codex"):
+            raise ValueError(f"DP_AI_PROVIDER unbekannt: {self.ai_provider!r} (erlaubt: none, test, codex)")
         for key, ceiling in SCHEMA_MAX.items():
             value = getattr(self, key)
             if value < 1 or value > ceiling:
@@ -104,7 +109,8 @@ class Settings:
         self.privacy_notice_file = Path(self.privacy_notice_file)
 
     @property
-    def external_ai_offered(self) -> bool:
+    def ai_configured(self) -> bool:
+        """Ein Adapter ist konfiguriert; ob er gerade verfuegbar ist (Login), weiss nur der Adapter."""
         return self.ai_provider != "none"
 
     @property
@@ -133,6 +139,7 @@ class Settings:
         """Nicht geheime Konfiguration fuer die Adminansicht."""
         return {
             "ai_provider": self.ai_provider,
+            "codex_model": self.codex_model if self.ai_provider == "codex" else None,
             "ai_daily_calls": self.ai_daily_calls,
             "ai_timeout_seconds": self.ai_timeout_seconds,
             "max_upload_bytes": self.max_upload_bytes,

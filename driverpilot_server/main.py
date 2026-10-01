@@ -24,7 +24,11 @@ def build(settings: Settings | None = None) -> tuple[Service, Worker]:
     contract = Contract()
     db = Database(settings.db_path)
     service = Service(settings, contract, db)
-    worker = Worker(service, build_adapter(settings.ai_provider))
+    adapter = build_adapter(settings.ai_provider, settings=settings)
+    if adapter is not None:
+        service.ai_available = adapter.available
+        service.codex_auth = getattr(adapter, "auth", None)
+    worker = Worker(service, adapter)
     return service, worker
 
 

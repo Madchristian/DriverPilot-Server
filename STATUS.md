@@ -12,18 +12,20 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 | Admin | `https://driverpilot.dns-prod-2.local.cstrube.de` (nur LAN/Tailnet, Authentik-Gruppe Homelab-Admins) |
 | Repo | `Madchristian/DriverPilot-Server` (privat) |
 | Vertrag | `contract/v1` = Kopie aus DriverPilot Commit `3c1becd` (siehe `contract/CONTRACT_SOURCE`), unverändert bestätigt |
-| KI | `none` (manuell). Kein Anbieter bis Freigabe von Anbieter/Region/Budget |
+| KI | `codex`: ChatGPT über Christians persönliches Konto (Codex-OAuth), Modell `gpt-5.6-sol`, 10 Aufrufe/Tag. **Abweichung von Issue #19 §4** („kein Rückgriff auf Christians ChatGPT-/Codex-OAuth-Login“) – bewusste Entscheidung Christians, weil der Pilot privat bleibt (er und ein Freund). Ohne Login = manueller Modus |
 | Einladungen | Einmal (Default) oder Mehrfach (Admin-Option), damit ein Code an mehrere Freunde gehen kann |
 
 ## Etappen
 
 - [x] Vertrag vendoren, Validator grün (`11 schemas, 27 error codes, 22 valid, 38 invalid`)
-- [x] Server implementiert (API, Admin, Worker, Bereinigung), 80 Tests grün
+- [x] Server implementiert (API, Admin, Worker, Bereinigung), 93 Tests grün (inkl. Codex-Adapter gegen nachgebildetes Backend)
 - [x] Repo auf GitHub: https://github.com/Madchristian/DriverPilot-Server (Deploy-Key read-only fuer rpi4-400)
 - [x] Deployment auf rpi4-400 (`~/driverpilot-server`, Compose, healthy), Smoke-Test im LAN: readyz/capabilities/404-Fehlerobjekt/Admin-403 ohne Proxy
 - [x] Pi-Traefik: Admin-Router live (`driverpilot.dns-prod-2.local.cstrube.de` → 302 Authentik); Identitaetsheader nur von dns-prod-2 (10.0.30.5/10.0.20.162)
 - [x] TrueNAS-Traefik `dynamic/driverpilot.yml` + Cloudflare-Record (records.tf, tofu apply) live seit 2026-10-01; Origin-Lock geprüft (Direktzugriff 403)
 - [x] HTTPS über die Cloudflare-Edge geprüft: HTTP/2 200 `/capabilities`, Kette Google Trust Services (CF-Edge), `Cache-Control: no-store`, 404/401 als Fehlerobjekte, `WWW-Authenticate: Bearer`; http→https 301 nur an der Edge (Client nutzt ausschließlich https). Test von einem Anschluss außerhalb des Homelabs steht noch aus (Christian/DriverPilot-Agent)
+- [x] Codex-Adapter + Adminseite „KI (ChatGPT)“ (Device-Code-Login, auth.json-Import, Logout); Datenschutzhinweis v2026-10-01.2 nennt OpenAI
+- [ ] Christian: in der Adminansicht bei ChatGPT anmelden; in den ChatGPT-Kontoeinstellungen Trainingsnutzung prüfen (im Hinweis als abgeschaltet zugesagt)
 - [ ] Datenschutzhinweis-Text mit Christian final abstimmen (dann Version anheben)
 - [ ] Windows-E2E mit dem DriverPilot-Client (DriverPilot-Agent); Einladungscode über sicheren Kanal
 - [ ] Drei READY-Reviews (Security/Privacy, API/State, Betrieb/UX) desselben Stands

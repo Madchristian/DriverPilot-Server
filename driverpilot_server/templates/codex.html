@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}KI (ChatGPT){% endblock %}
+{% block content %}
+<h1>KI-Entwürfe über ChatGPT (Codex-OAuth)</h1>
+{% if auth is none %}
+<div class="card"><p>Adapter ist nicht aktiv (<code>DP_AI_PROVIDER={{ settings.ai_provider }}</code>). Alle Fälle werden manuell bearbeitet.</p></div>
+{% else %}
+<div class="grid">
+  <div class="card">
+    <h2>Status</h2>
+    <table>
+      <tr><th>Angemeldet</th><td>{% if status.logged_in %}<span class="ok">ja</span>{% else %}<span class="warn">nein</span>{% endif %}</td></tr>
+      <tr><th>Konto</th><td>{{ status.email or '–' }} {% if status.plan %}<span class="muted">({{ status.plan }})</span>{% endif %}</td></tr>
+      <tr><th>Access-Token gültig bis</th><td>{{ status.expires_at or '–' }}{% if status.expired %} <span class="warn">(abgelaufen, wird beim nächsten Aufruf erneuert)</span>{% endif %}</td></tr>
+      <tr><th>Letzter Refresh</th><td>{{ status.last_refresh or '–' }}</td></tr>
+      <tr><th>Letzter Fehler</th><td>{% if status.last_error %}<span class="warn">{{ status.last_error }}</span>{% else %}–{% endif %}</td></tr>
+      <tr><th>Modell</th><td>{{ settings.codex_model }}</td></tr>
+      <tr><th>Für Clients angeboten</th><td>{% if ai_offered %}<span class="ok">ja</span> (external_ai_offered=true){% else %}<span class="warn">nein</span> – ohne Login bleibt alles manuell{% endif %}</td></tr>
+      <tr><th>Aufrufe heute</th><td>{{ budget_used }} / {{ settings.ai_daily_calls }}</td></tr>
+    </table>
+    <div class="actions">
+      {% if not status.logged_in %}
+      <form class="inline" method="post" action="/codex/login"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="primary">Mit ChatGPT anmelden (Device-Code)</button></form>
+      {% else %}
+      <form class="inline" method="post" action="/codex/logout" onsubmit="return confirm('Abmelden und Tokendatei löschen?')"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="danger">Abmelden</button></form>
+      {% endif %}
+    </div>
+    {% if status.device %}
+    <div class="card">
+      <h3>Device-Login läuft ({{ status.device.state }})</h3>
+      {% if status.device.state == 'pending' %}
+      <p>Im Browser <code>{{ status.device.verification_url }}</code> öffnen und diesen Code eingeben:</p>
+      <pre>{{ status.device.user_code }}</pre>
+      <p class="muted">Diese Seite danach neu laden. Der Code gilt 15 Minuten.</p>
+      <form class="inline" method="post" action="/codex/cancel"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Abbrechen</button></form>
+      {% elif status.device.state == 'done' %}<p class="ok">Login abgeschlossen.</p>
+      {% else %}<p class="warn">{{ status.device.state }}: {{ status.device.error or '' }}</p>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>Alternativ: auth.json der Codex-CLI übernehmen</h2>
+    <form method="post" action="/codex/import">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <textarea name="auth_json" style="min-height:160px" placeholder='Inhalt von ~/.codex/auth.json'></textarea>
+      <div class="actions"><button>Übernehmen</button></div>
+    </form>
+    <p class="muted">Die Datei wird nach <code>/data/codex-auth.json</code> (0600) geschrieben und nie protokolliert.</p>
+  </div>
+</div>
+<div class="card">
+  <h2>Was passiert bei einem KI-Entwurf</h2>
+  <p>Nur Fälle mit <code>external_ai_allowed=true</code> werden in die Warteschlange gestellt. Der Worker sendet den Bericht (als reine Daten) mit festen Anweisungen an das ChatGPT-Backend (<code>store=false</code>), prüft die Antwort gegen das Ergebnisschema und die Belegregeln und legt sie als <b>KI-Entwurf</b> ab. Der Entwurf geht erst nach deiner Prüfung und Freigabe an den Nutzer. Pro Fall höchstens zwei automatische Versuche, 90 s Timeout, Tagesbudget {{ settings.ai_daily_calls }} Aufrufe.</p>
+  <p class="warn">Der Datenschutzhinweis nennt OpenAI als Empfänger; die Trainingsnutzung hängt von der Einstellung deines ChatGPT-Kontos ab („Das Modell für alle verbessern“ ausschalten).</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,12 +1,12 @@
-Datenschutzhinweis zur betreuten Ferndiagnose (Version 2026-10-01.1, ENTWURF für den Pilot)
+Datenschutzhinweis zur betreuten Ferndiagnose (Version 2026-10-01.2, ENTWURF für den Pilot)
 
-Empfänger: Christian Strube, privat betriebener Server im Heimnetz (Deutschland). Es gibt keinen weiteren Empfänger, solange du der externen KI nicht ausdrücklich zustimmst.
+Empfänger: Christian Strube, privat betriebener Server im Heimnetz (Deutschland). Ohne deine ausdrückliche Zustimmung zur externen KI gibt es keinen weiteren Empfänger.
 
 Zweck: Christian sieht sich deinen Diagnosebericht an, um dir bei einem konkreten PC-Problem zu helfen. Er schreibt dir Empfehlungen als Text zurück. DriverPilot führt nichts davon selbst aus.
 
 Was gesendet wird: nur das, was du in der Vorschau siehst. Ausgewählte Hardwarefelder (Windows-Version, CPU, RAM, Mainboard, BIOS), höchstens 64 Geräte mit bereinigter Modellkennung und Treiberversion, höchstens 200 gruppierte Systemereignisse (Quelle, Ereignisnummer, Anzahl, Zeitraum) der letzten 24 Stunden und dein eigener Text. Keine Gerätenamen, Seriennummern, Dateipfade, Ereignistexte, Benutzernamen oder IP-Adressen. Der Server lehnt Berichte ab, in denen solche Angaben erkannt werden.
 
-Externe KI: Nur wenn du das Kästchen „externe KI erlauben“ ankreuzt, darf der Server den Bericht zusätzlich an einen KI-Dienst schicken, um einen Entwurf zu erstellen. Derzeit ist kein externer KI-Dienst angebunden; alle Fälle werden von Christian manuell bearbeitet. Sollte ein Dienst angebunden werden, steht hier Anbieter, Region und Speicherdauer, und du musst diesem Hinweis erneut zustimmen.
+Externe KI (nur wenn du das Kästchen „externe KI erlauben“ ankreuzt): Der Server schickt denselben Bericht einmalig an OpenAI (ChatGPT), um einen Entwurf für Christian zu erstellen. Das geschieht über Christians privates ChatGPT-Konto; die Daten werden auf Servern von OpenAI verarbeitet (nach OpenAIs Angaben in den USA) und unterliegen den Datenschutzbestimmungen von OpenAI für ChatGPT-Konten. Die Anfrage ist so gestellt, dass OpenAI sie nicht als Gesprächsverlauf speichert; eine Nutzung zum Training ist in Christians Kontoeinstellungen abgeschaltet. Was einmal an OpenAI übermittelt wurde, kann durch das Löschen deines Falls bei Christian nicht zurückgeholt werden. Der KI-Entwurf wird von Christian geprüft und nur freigegeben, was er verantwortet. Wenn du das Kästchen nicht ankreuzt, verlässt dein Bericht Christians Server nicht.
 
 Speicherung und Löschung: Der Fall wird 7 Tage nach Eingang automatisch gelöscht. Du kannst ihn in DriverPilot jederzeit vorher löschen. Es werden keine Sicherungskopien der Berichte angelegt. Metadaten (Zeitpunkt, Fallnummer, Ergebnis) bleiben für 30 Tage in einem technischen Protokoll ohne Berichtsinhalt.
 

@@ -101,11 +101,18 @@ braucht eine neue `DP_PRIVACY_NOTICE_VERSION`; Berichte mit alter Version werden
 
 ### Modelladapter
 
-`DP_AI_PROVIDER=none` (Default): keine Aufträge, alle Fälle `awaiting_review`, `/capabilities`
-meldet `external_ai_offered=false`, der Client bietet die KI-Option nicht an.
-`test`: synthetischer Adapter, jeder Text trägt `TESTADAPTER`; nur für Tests. Ein echter
-Anbieter braucht vorher Christians Entscheidung zu Anbieter, Region, Aufbewahrung und Budget
-sowie einen angepassten Datenschutzhinweis. Schnittstelle: `Adapter.analyze(report) ->
-AdapterResult`; Berichtstext ist dabei untrusted data. Pilotdefaults: ein gleichzeitiger Aufruf,
-höchstens zwei Versuche je Fall, 90 s Timeout, Timeout = `outcome_unknown` ohne Neuversuch,
-Tagesbudget atomar reserviert.
+`DP_AI_PROVIDER=none`: keine Aufträge, alle Fälle `awaiting_review`, `/capabilities` meldet
+`external_ai_offered=false`, der Client bietet die KI-Option nicht an.
+`test`: synthetischer Adapter, jeder Text trägt `TESTADAPTER`; nur für Tests.
+`codex` (Pilot-Entscheidung Christian, 2026-10-01): ChatGPT über denselben OAuth-Weg wie die
+Codex-CLI (Device-Code-Login in der Adminansicht unter „KI (ChatGPT)“ oder Import einer
+`~/.codex/auth.json`). Tokens liegen in `/data/codex-auth.json` (0600) und werden per
+Refresh-Token erneuert. **Ohne Login** meldet `/capabilities` `external_ai_offered=false` und
+alle Fälle laufen manuell; Fälle mit KI-Zustimmung warten in `queued`, bis ein Login da ist.
+Der Worker sendet den Bericht als reine Daten mit festen Anweisungen (`driverpilot_server/codex.py`,
+`INSTRUCTIONS`, Promptversion in `drafts.prompt_version`) an `/responses` mit `store=false` und
+prüft die Antwort gegen Schema und Belegregeln; unbrauchbare Antworten → `output_rejected`.
+Schnittstelle für weitere Anbieter: `Adapter.analyze(report) -> AdapterResult`, `available()`.
+Pilotdefaults: ein gleichzeitiger Aufruf, höchstens zwei Versuche je Fall, 90 s Timeout,
+Timeout = `outcome_unknown` ohne Neuversuch, Tagesbudget (`DP_AI_DAILY_CALLS`) atomar reserviert.
+Der Datenschutzhinweis nennt OpenAI als Empfänger (Version `2026-10-01.2`).

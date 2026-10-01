@@ -76,6 +76,12 @@ class Service:
         self.limits = TimeLimits(
             settings.max_scan_age_seconds, settings.max_future_skew_seconds, settings.max_observation_window_seconds
         )
+        # Wird von main.build auf adapter.available gesetzt (z.B. Codex nur mit Login).
+        self.ai_available = lambda: settings.ai_configured
+        self.codex_auth = None  # CodexAuth, wenn Adapter codex aktiv ist (fuer die Adminseite)
+
+    def external_ai_offered(self) -> bool:
+        return bool(self.settings.ai_configured and self.ai_available())
 
     # ------------------------------------------------------------------ Hilfen
 
@@ -102,7 +108,7 @@ class Service:
             "max_future_skew_seconds": self.settings.max_future_skew_seconds,
             "case_retention_days": self.settings.case_retention_days,
             "privacy_notice": {"version": self.settings.privacy_notice_version, "text": self.privacy_notice_text},
-            "external_ai_offered": self.settings.external_ai_offered,
+            "external_ai_offered": self.external_ai_offered(),
         }
 
     # ------------------------------------------------------------------ Zugang
@@ -240,7 +246,7 @@ class Service:
         now = self.now()
         case_id = new_id()
         ai_allowed = bool(report["consent"]["external_ai_allowed"])
-        initial_status = "queued" if ai_allowed and self.settings.external_ai_offered else "awaiting_review"
+        initial_status = "queued" if ai_allowed and self.external_ai_offered() else "awaiting_review"
         try:
             with self.db.transaction() as conn:
                 replay = self._replay(conn, client_id, "cases", idempotency_key, body_hash)
@@ -688,8 +694,8 @@ class Service:
 
     def retry(self, case_id: str, expected_version: int, actor: str) -> None:
         """Ausdruecklicher, budgetierter Neuversuch der Analyse."""
-        if not self.settings.external_ai_offered:
-            raise AdminError("Kein Modellanbieter aktiv.")
+        if not self.external_ai_offered():
+            raise AdminError("Kein Modellanbieter verfuegbar (nicht konfiguriert oder nicht angemeldet).")
         with self.db.transaction() as conn:
             case = self._admin_case(conn, case_id, expected_version)
             if not case["external_ai_allowed"]:

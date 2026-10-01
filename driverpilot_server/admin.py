@@ -142,7 +142,7 @@ class Admin:
             results=results, report_json=json.dumps(detail["report"], ensure_ascii=False, indent=2),
             can_release=self.service.contract.transition_allowed(detail["case"]["status"], "released", "admin"),
             can_take_over=self.service.contract.transition_allowed(detail["case"]["status"], "awaiting_review", "admin"),
-            can_retry=self.settings.external_ai_offered and detail["case"]["external_ai_allowed"]
+            can_retry=self.service.external_ai_offered() and detail["case"]["external_ai_allowed"]
             and self.service.contract.transition_allowed(detail["case"]["status"], "queued", "admin"),
         )
 
@@ -226,6 +226,43 @@ class Admin:
         self.identity(request)
         return self.render(request, "audit.html", entries=self.service.audit_entries())
 
+    # ------------------------------------------------------------------ Codex (ChatGPT-OAuth)
+
+    async def codex(self, request: Request) -> Response:
+        self.identity(request)
+        auth = self.service.codex_auth
+        return self.render(
+            request, "codex.html", auth=auth, status=auth.status() if auth else None,
+            ai_offered=self.service.external_ai_offered(), budget_used=self.service.ai_budget_used(),
+        )
+
+    async def codex_action(self, request: Request) -> Response:
+        user = self.identity(request)
+        form = await self.check_csrf(request)
+        auth = self.service.codex_auth
+        action = request.path_params["action"]
+        if auth is None:
+            return self.redirect("/codex", "Fehler: Adapter codex ist nicht konfiguriert (DP_AI_PROVIDER).")
+        try:
+            if action == "login":
+                device = await request.app.state.run_blocking(auth.start_device_login)
+                message = f"Code {device.user_code} auf {device.verification_url} eingeben."
+            elif action == "cancel":
+                auth.cancel_device_login()
+                message = "Login abgebrochen."
+            elif action == "logout":
+                auth.logout()
+                message = "Abgemeldet; Tokendatei geloescht."
+            elif action == "import":
+                auth.import_auth_json(form.get("auth_json", ""))
+                message = "auth.json uebernommen."
+            else:
+                raise HTTPException(404)
+        except (ValueError, RuntimeError) as exc:
+            return self.redirect("/codex", f"Fehler: {exc}")
+        self.service.audit(user, f"codex.{action}", None, "ok")
+        return self.redirect("/codex", message)
+
     async def healthz(self, request: Request) -> Response:
         return PlainTextResponse("ok")
 
@@ -252,6 +289,8 @@ def create_admin_app(service: Service) -> Starlette:
         Route("/clients", admin.clients, methods=["GET"]),
         Route("/clients/{client_id}/revoke", admin.client_revoke, methods=["POST"]),
         Route("/audit", admin.audit, methods=["GET"]),
+        Route("/codex", admin.codex, methods=["GET"]),
+        Route("/codex/{action}", admin.codex_action, methods=["POST"]),
         Route("/healthz", admin.healthz, methods=["GET"]),
     ]
     app = Starlette(
@@ -259,4 +298,7 @@ def create_admin_app(service: Service) -> Starlette:
         exception_handlers={Forbidden: admin.handle_forbidden, HTTPException: admin.handle_http, Exception: admin.handle_unexpected},
     )
     app.state.admin = admin
+    import asyncio
+
+    app.state.run_blocking = lambda fn, *args: asyncio.to_thread(fn, *args)
     return app
