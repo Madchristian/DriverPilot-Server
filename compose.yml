@@ -1,12 +1,12 @@
-# DriverPilot Ferndiagnose-Server auf rpi4-400 (10.0.30.3).
+# DriverPilot Ferndiagnose auf rpi4-400 (10.0.30.3).
 #
-# API    :8140  <- TrueNAS-Traefik (10.0.30.20) fuer https://driverpilot.cstrube.de (Cloudflare, Origin-Lock)
-# Admin  :8141  <- Pi-Traefik dns-prod-2 (10.0.30.5), Authentik-SSO, https://driverpilot.dns-prod-2.local.cstrube.de
-# Beide Ports sind nur im LAN erreichbar (kein Port-Forward auf .3). Identitaets- und
-# Forwarded-Header werden nur von den in .env genannten Proxys akzeptiert.
+# server (Python): Client-API /api/v1, Webhooks /hooks/*, Release-Dateien /downloads/<datei>
+#                  auf :8140 <- TrueNAS-Traefik (driverpilot.cstrube.de, nur diese Pfade).
+#                  Interne Admin-JSON-API auf :8141, NUR im Compose-Netz (nicht veroeffentlicht).
+# web (SvelteKit): oeffentliche Seiten (/, /anleitung, /downloads, /datenschutz, /einladung)
+#                  auf :8142 <- TrueNAS-Traefik; Admin (/admin) <- Pi-Traefik dns-prod-2 mit Authentik.
 #
-# Daten (SQLite) liegen in ./data (0700, uid 10001). Bewusst NICHT in den allgemeinen
-# Pi-Backups (siehe README, Abschnitt Datenschutz).
+# Daten (SQLite) liegen in ./data (0700, uid 10001), nicht in den Pi-Backups.
 name: driverpilot-server
 services:
   server:
@@ -19,11 +19,10 @@ services:
       TZ: Europe/Berlin
     ports:
       - "8140:8140"
-      - "8141:8141"
     volumes:
       - ./data:/data
       # Release-Dateien des Windows-Clients; der Release-Sync (Webhook) schreibt hierhin.
-      # Verzeichnis gehoert 10001:1000 mit 775, damit auch deploy/publish-release.sh (christian) darf.
+      # Verzeichnis gehoert 10001:christian mit 775, damit auch deploy/publish-release.sh darf.
       - ./downloads:/downloads
     read_only: true
     tmpfs:
@@ -34,6 +33,41 @@ services:
       - ALL
     mem_limit: 512m
     cpus: 1.5
+    pids_limit: 128
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+    logging:
+      driver: json-file
+      options: {max-size: "5m", max-file: "3"}
+
+  web:
+    build: ./web
+    image: driverpilot-web:local
+    container_name: driverpilot-web
+    restart: always
+    # Bewusst kein env_file: die Oberflaeche bekommt nur, was sie braucht (kein GitHub-Token usw.).
+    environment:
+      TZ: Europe/Berlin
+      DP_API_URL: http://server:8140
+      DP_ADMIN_API_URL: http://server:8141
+      DP_ADMIN_API_TOKEN: ${DP_ADMIN_API_TOKEN:?DP_ADMIN_API_TOKEN fehlt in .env}
+      DP_PUBLIC_BASE_URL: ${DP_PUBLIC_BASE_URL:-https://driverpilot.cstrube.de}
+      ADMIN_HOSTS: ${ADMIN_HOSTS:-driverpilot.dns-prod-2.local.cstrube.de}
+      ADMIN_TRUSTED_PROXIES: ${ADMIN_TRUSTED_PROXIES:?ADMIN_TRUSTED_PROXIES fehlt in .env}
+      ADMIN_GROUP: ${ADMIN_GROUP:-Homelab-Admins}
+    ports:
+      - "8142:3000"
+    depends_on:
+      - server
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: 1.0
     pids_limit: 128
     labels:
       com.centurylinklabs.watchtower.enable: "false"

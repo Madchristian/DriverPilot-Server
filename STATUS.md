@@ -9,13 +9,18 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 |---|---|
 | Host | `rpi4-400` (10.0.30.3), Docker Compose in `~/driverpilot-server` |
 | API-Basis | `https://driverpilot.cstrube.de/api/v1` (Cloudflare proxied → TrueNAS-Traefik → Pi) |
-| Admin | `https://driverpilot.dns-prod-2.local.cstrube.de` (nur LAN/Tailnet, Authentik-Gruppe Homelab-Admins) |
+| Admin | `https://driverpilot.dns-prod-2.local.cstrube.de` (nur LAN/Tailnet, Authentik-Gruppe Homelab-Admins), SvelteKit-Oberfläche |
+| Oberfläche | SvelteKit (Svelte 5, Tailwind 4) in `web/`, eigener Container; Python bleibt für Vertrag, Webhooks, Downloads und Worker (Wunsch Christian 2026-10-01: moderneres Aussehen) |
 | Repo | `Madchristian/DriverPilot-Server` (privat) |
 | Vertrag | `contract/v1` = Kopie aus DriverPilot Commit `3c1becd` (siehe `contract/CONTRACT_SOURCE`), unverändert bestätigt |
 | KI | `codex`: ChatGPT über Christians persönliches Konto (Codex-OAuth), Modell `gpt-5.6-sol`, 10 Aufrufe/Tag. **Abweichung von Issue #19 §4** („kein Rückgriff auf Christians ChatGPT-/Codex-OAuth-Login“) – bewusste Entscheidung Christians, weil der Pilot privat bleibt (er und ein Freund). Ohne Login = manueller Modus |
 | Einladungen | Einmal (Default) oder Mehrfach (Admin-Option), damit ein Code an mehrere Freunde gehen kann |
 
 ## Etappen
+
+- [x] SvelteKit-Oberfläche (`web/`): öffentliche Seiten, Einladungsseite, Admin mit strukturiertem Entwurfs-Editor; Python-Admin ist jetzt interne JSON-API (`/admin-api`, Token, nur Compose-Netz); geprüft mit svelte-check, Build, Playwright-Klicktest (Einladung erzeugen, Link öffnen, speichern, freigeben) und 390-px-Breite
+- [x] Einladungslink (`/einladung#c=…&n=…`, Code im Fragment, nie beim Server). **Hinweis an den DriverPilot-Agenten:** ein `driverpilot://pair?server=…&code=…`-Handler im Client würde den Kopierschritt sparen
+- [x] Setup-ZIP neben der EXE (Browser/SmartScreen blockieren die EXE); Repo öffentlich mit MIT-Lizenz nach gitleaks-Scan der ganzen Historie
 
 - [x] Handbuch für Freunde, Christian und Betrieb: `docs/HANDBUCH.md` (nach Humanizer-Regeln überarbeitet)
 - [x] Release-Sync: GitHub-Webhook (Ereignis release) + `POST /hooks/sync-release` + Admin-Seite Releases; gegen echtes Release v0.3.4 getestet (10 s). **Offen: fine-grained PAT (Contents: Read-only, Repo DriverPilot) als `DP_GITHUB_TOKEN` in die Pi-.env**, bis dahin meldet die Seite „fehlt“

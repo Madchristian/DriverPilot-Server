@@ -1,0 +1,127 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Farben aus dem DriverPilot-Logo: Navy-Kachel, blauer Chip, Mint-Haken. */
+@theme {
+	--font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+	--font-mono: ui-monospace, SFMono-Regular, 'Cascadia Mono', Menlo, Consolas, monospace;
+
+	--color-bg: #08101c;
+	--color-surface: #0e1928;
+	--color-surface-2: #132236;
+	--color-surface-3: #1a2c44;
+	--color-line: rgba(140, 180, 230, 0.10);
+	--color-line-strong: rgba(140, 180, 230, 0.22);
+	--color-fg: #e7eef8;
+	--color-muted: #8fa3bd;
+	--color-dim: #5f7591;
+	--color-accent: #5bd7c1;
+	--color-accent-dim: rgba(91, 215, 193, 0.13);
+	--color-blue: #69abff;
+	--color-blue-dim: rgba(105, 171, 255, 0.14);
+	--color-ok: #34d399;
+	--color-ok-dim: rgba(52, 211, 153, 0.14);
+	--color-warn: #fbbf24;
+	--color-warn-dim: rgba(251, 191, 36, 0.14);
+	--color-bad: #f87171;
+	--color-bad-dim: rgba(248, 113, 113, 0.14);
+	--color-violet: #a78bfa;
+	--color-violet-dim: rgba(167, 139, 250, 0.14);
+}
+
+html {
+	color-scheme: dark;
+	background: var(--color-bg);
+}
+
+body {
+	@apply bg-bg text-fg font-sans antialiased;
+	padding-left: env(safe-area-inset-left);
+	padding-right: env(safe-area-inset-right);
+}
+
+::selection {
+	background: rgba(91, 215, 193, 0.28);
+}
+
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #24364f transparent;
+}
+
+@layer components {
+	.card {
+		@apply bg-surface border border-line rounded-2xl;
+	}
+	.card-hover {
+		@apply transition-colors duration-150 hover:border-line-strong hover:bg-surface-2;
+	}
+	.chip {
+		@apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] leading-4 font-medium text-muted bg-surface-3 border border-line;
+	}
+	.pill {
+		@apply inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-wide whitespace-nowrap;
+	}
+	.btn {
+		@apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium border border-line bg-surface-2 text-fg transition-colors hover:bg-surface-3 hover:border-line-strong disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer;
+	}
+	.btn-primary {
+		@apply bg-accent text-bg border-transparent font-semibold hover:bg-accent/90 hover:border-transparent;
+	}
+	.btn-blue {
+		@apply bg-blue text-bg border-transparent font-semibold hover:bg-blue/90 hover:border-transparent;
+	}
+	.btn-danger {
+		@apply bg-bad-dim text-bad border-bad/30 hover:bg-bad/25;
+	}
+	.btn-sm {
+		@apply px-2 py-1 text-xs rounded-md;
+	}
+	.input {
+		@apply w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm text-fg placeholder:text-dim focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/20;
+	}
+	.label {
+		@apply block text-[11px] uppercase tracking-wider text-dim font-semibold mb-1;
+	}
+	.mono {
+		@apply font-mono text-[12.5px];
+	}
+	.table {
+		@apply w-full text-sm;
+	}
+	.table th {
+		@apply text-left text-[11px] uppercase tracking-wider text-dim font-semibold px-3 py-2 border-b border-line whitespace-nowrap;
+	}
+	.table td {
+		@apply px-3 py-2 border-b border-line/60 align-top;
+	}
+	.table tr:last-child td {
+		@apply border-b-0;
+	}
+	.nav-link {
+		@apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted transition-colors hover:bg-surface-2 hover:text-fg;
+	}
+	.nav-link[aria-current='page'] {
+		@apply bg-accent-dim text-accent;
+	}
+	.doc {
+		@apply prose prose-invert max-w-none prose-headings:scroll-mt-20 prose-h1:text-3xl prose-h2:text-xl prose-h2:mt-10 prose-a:text-accent prose-code:text-accent prose-code:before:content-none prose-code:after:content-none prose-code:bg-surface-2 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-th:text-left prose-table:text-sm prose-li:my-1;
+	}
+}
+
+/* Breite Tabellen und lange Codes in der Anleitung scrollen statt die Seite zu verbreitern. */
+.doc table {
+	display: block;
+	overflow-x: auto;
+}
+.doc code {
+	overflow-wrap: anywhere;
+}
+
+@keyframes fade-in {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: none; }
+}
+.fade-in {
+	animation: fade-in 0.25s ease-out both;
+}

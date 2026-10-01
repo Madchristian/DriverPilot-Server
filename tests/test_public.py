@@ -1,21 +1,15 @@
-"""Oeffentliche Seiten: Anleitung, Datenschutz, Downloads (nur erlaubte Dateien, kein Pfadausbruch)."""
+"""Oeffentliche Daten-Endpunkte und Datei-Auslieferung (nur erlaubte Dateien, kein Pfadausbruch)."""
 
 from __future__ import annotations
 
 import hashlib
 
-from conftest import Harness
+from conftest import SCENARIO, Harness
 
 
-def test_pages_render(h):
-    for path, needle in (("/", "Anleitung für Freunde"), ("/anleitung", "Koppeln"), ("/datenschutz", "Datenschutzhinweis")):
-        response = h.api.get(path)
-        assert response.status_code == 200, path
-        assert needle in response.text
-        assert "noindex" in response.headers["x-robots-tag"]
-        assert "default-src 'none'" in response.headers["content-security-policy"]
-    assert h.api.get("/robots.txt").text.startswith("User-agent")
-    assert h.api.get("/downloads", follow_redirects=False).status_code == 308
+def test_privacy_json(h):
+    data = h.api.get("/public-api/privacy").json()
+    assert data["version"] == SCENARIO["privacy_notice_version"] and "Datenschutzhinweis" in data["text"]
 
 
 def test_downloads_listing_and_file(tmp_path, contract):
@@ -27,12 +21,11 @@ def test_downloads_listing_and_file(tmp_path, contract):
     (downloads / ".hidden.txt").write_text("nope")  # versteckt
     h = Harness(tmp_path, contract, DP_DOWNLOADS_DIR=str(downloads))
     try:
-        listing = h.api.get("/downloads/")
-        assert listing.status_code == 200
-        assert "DriverPilot-0.3.4-win-x64.zip" in listing.text and "SHA256SUMS.txt" in listing.text
-        assert "secret.sqlite3" not in listing.text and ".hidden.txt" not in listing.text
-        assert hashlib.sha256(b"PK\x03\x04synthetic").hexdigest() in listing.text
-        assert "Portable Version" in listing.text
+        files = h.api.get("/public-api/downloads").json()["files"]
+        names = [f["name"] for f in files]
+        assert names == ["DriverPilot-0.3.4-win-x64.zip", "SHA256SUMS.txt"]
+        assert files[0]["sha256"] == hashlib.sha256(b"PK\x03\x04synthetic").hexdigest()
+        assert files[0]["kind"] == "portable" and files[0]["version"] == "0.3.4"
 
         file = h.api.get("/downloads/DriverPilot-0.3.4-win-x64.zip")
         assert file.status_code == 200 and file.content == b"PK\x03\x04synthetic"
@@ -40,8 +33,9 @@ def test_downloads_listing_and_file(tmp_path, contract):
         assert "attachment" in file.headers["content-disposition"]
 
         for bad in ("secret.sqlite3", ".hidden.txt", "..%2F..%2Fetc%2Fpasswd", "nope.zip", "a%00.zip"):
-            assert h.api.get(f"/downloads/{bad}").status_code == 404, bad
-        # API bleibt JSON, Seiten bleiben HTML
+            response = h.api.get(f"/downloads/{bad}")
+            assert response.status_code == 404, bad
+            assert response.headers["cache-control"] == "no-store"
         assert h.api.get("/api/v1/nope").json()["error"]["code"] == "not_found"
     finally:
         h.close()
@@ -56,9 +50,8 @@ def test_setup_zip_created_on_startup_and_listed_first(tmp_path, contract):
     h = Harness(tmp_path, contract, DP_DOWNLOADS_DIR=str(downloads))
     try:
         assert (downloads / "DriverPilot-0.3.4-Setup-x64.zip").is_file()
-        text = h.api.get("/downloads/").text
-        assert text.index("DriverPilot-0.3.4-Setup-x64.zip") < text.index("DriverPilot-0.3.4-win-x64.zip")
-        assert "Installation (empfohlen)" in text
+        files = h.api.get("/public-api/downloads").json()["files"]
+        assert [f["kind"] for f in files] == ["setup", "portable", "cert", "setup-exe"]
     finally:
         h.close()
 
@@ -66,7 +59,6 @@ def test_setup_zip_created_on_startup_and_listed_first(tmp_path, contract):
 def test_missing_downloads_dir_is_harmless(tmp_path, contract):
     h = Harness(tmp_path, contract, DP_DOWNLOADS_DIR=str(tmp_path / "gibt-es-nicht"))
     try:
-        response = h.api.get("/downloads/")
-        assert response.status_code == 200 and "keine Dateien" in response.text
+        assert h.api.get("/public-api/downloads").json() == {"files": []}
     finally:
         h.close()

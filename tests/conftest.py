@@ -47,7 +47,7 @@ def contract() -> Contract:
 def make_settings(tmp_path: Path, **overrides) -> Settings:
     env = {
         "DP_DATA_DIR": str(tmp_path / "data"),
-        "DP_ADMIN_DEV_USER": "tester",
+        "DP_ADMIN_API_TOKEN": "SYNTHETIC-admin-api-token",
         "DP_PRIVACY_NOTICE_VERSION": SCENARIO["privacy_notice_version"],
         "DP_AI_PROVIDER": "none",
     }
@@ -74,7 +74,8 @@ class Harness:
         self.api_app = create_api_app(self.service)
         self.admin_app = create_admin_app(self.service)
         self.api = TestClient(self.api_app, raise_server_exceptions=False)
-        self.admin = TestClient(self.admin_app, raise_server_exceptions=False, base_url="https://admin.test")
+        self.admin = TestClient(self.admin_app, raise_server_exceptions=False, base_url="http://server:8141",
+                                headers={"Authorization": "Bearer SYNTHETIC-admin-api-token", "X-DP-Actor": "tester"})
 
     def pair(self, label: str = "test") -> dict:
         _, code = self.service.create_invitation(label, "tester")

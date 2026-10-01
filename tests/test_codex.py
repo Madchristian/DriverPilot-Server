@@ -133,8 +133,8 @@ def test_codex_without_login_means_manual_mode(tmp_path, contract):
         token = h.pair()["access_token"]
         assert h.create_case(token, KEY_A).json()["status"] == "awaiting_review"
         assert h.service.db.one("SELECT COUNT(*) FROM jobs")[0] == 0
-        page = h.admin.get("/codex")
-        assert page.status_code == 200 and "Mit ChatGPT anmelden" in page.text
+        page = h.admin.get("/admin-api/codex")
+        assert page.status_code == 200 and page.json()["status"]["logged_in"] is False and page.json()["ai_offered"] is False
     finally:
         h.close()
 

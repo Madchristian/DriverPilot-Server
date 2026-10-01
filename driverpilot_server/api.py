@@ -287,14 +287,10 @@ def create_api_app(service: Service) -> Starlette:
     public = Public(service.settings, service.privacy_notice_text)
     prefix = "/api/v1"
     routes = [
-        # Oeffentliche Seiten fuer Menschen (Anleitung, Downloads); alles unter /api/v1 bleibt JSON.
-        Route("/", public.index, methods=["GET"]),
-        Route("/anleitung", public.anleitung, methods=["GET"]),
-        Route("/datenschutz", public.datenschutz, methods=["GET"]),
-        Route("/downloads", public.downloads_redirect, methods=["GET"]),
-        Route("/downloads/", public.downloads, methods=["GET"]),
+        # Daten fuer die oeffentlichen SvelteKit-Seiten und die Release-Dateien selbst.
+        Route("/public-api/downloads", public.downloads_json, methods=["GET"]),
+        Route("/public-api/privacy", public.privacy_json, methods=["GET"]),
         Route("/downloads/{name}", public.download_file, methods=["GET"]),
-        Route("/robots.txt", public.robots, methods=["GET"]),
         Route("/hooks/github", api.github_webhook, methods=["POST"]),
         Route("/hooks/sync-release", api.sync_release, methods=["POST"]),
         Route(f"{prefix}/capabilities", api.capabilities, methods=["GET"]),

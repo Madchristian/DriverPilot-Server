@@ -49,13 +49,15 @@ der nächsten Version; die Downloadseite zeigt immer die aktuelle.
 
 ## 2. Was du für die Ferndiagnose brauchst
 
-Von Christian bekommst du die Serveradresse `https://driverpilot.cstrube.de` und einen
-Einladungscode mit 32 Zeichen, beides per Nachricht. Ein ChatGPT-Konto brauchst du nicht.
+Von Christian bekommst du einen Einladungslink. Die Seite dahinter zeigt dir die Serveradresse
+`https://driverpilot.cstrube.de` und deinen Einladungscode mit Knöpfen zum Kopieren. Hat dir
+Christian stattdessen Adresse und Code direkt geschickt, geht das genauso. Ein ChatGPT-Konto
+brauchst du nicht.
 
 ## 3. Koppeln (einmalig)
 
 1. In DriverPilot „Hilfe von Christian“ öffnen und auf „Koppeln“ gehen.
-2. Serveradresse und Einladungscode eintragen und bestätigen.
+2. Serveradresse und Einladungscode von der Einladungsseite kopieren, eintragen und bestätigen.
 3. DriverPilot bekommt einen Zugang, der 30 Tage gilt. Der Code ist danach verbraucht.
 
 Ist der Zugang abgelaufen oder hat Christian ihn widerrufen, meldet DriverPilot „Zugang

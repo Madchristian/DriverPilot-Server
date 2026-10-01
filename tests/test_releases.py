@@ -163,8 +163,8 @@ def test_webhook_and_sync_endpoint(tmp_path, contract, monkeypatch):
         assert latest.status_code == 202 and triggered[-1] == (None, "sync-endpoint")
         assert h.api.post("/hooks/sync-release", json={"tag": "../x"}, headers={"Authorization": "Bearer sync-token"}).status_code == 400
 
-        page = h.admin.get("/releases")
-        assert page.status_code == 200 and "konfiguriert" in page.text
+        page = h.admin.get("/admin-api/releases")
+        assert page.status_code == 200 and page.json()["configured"] is True and page.json()["webhook_configured"] is True
     finally:
         h.close()
 

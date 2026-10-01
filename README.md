@@ -6,36 +6,46 @@ Aktueller Stand und offene Punkte: [STATUS.md](STATUS.md). Bedienung und Betrieb
 
 Der Server nimmt Diagnoseberichte nach dem Vertrag `contract/v1` (byte-exakte Kopie aus dem
 DriverPilot-Repo, Quell-Commit in `contract/CONTRACT_SOURCE`) entgegen, hält sie 7 Tage, und
-Christian gibt in einer Adminansicht ein Ergebnis frei, das der Client abholt. Optional erzeugt
+Christian gibt in einer Admin-Oberfläche ein Ergebnis frei, das der Client abholt. Optional erzeugt
 ein Modelladapter vorher einen Entwurf; im Pilot ist kein echter Anbieter angebunden.
 
 ## Aufbau
 
+Zwei Container auf `rpi4-400`:
+
+| Dienst | Port | Aufgabe | Erreichbar über |
+|---|---|---|---|
+| `server` (Python, Starlette) | 8140 | Client-API `/api/v1` nach Vertrag, Webhooks `/hooks/*`, Release-Dateien `/downloads/<datei>`, `/readyz` | TrueNAS-Traefik, nur diese Pfade |
+| `server` | 8141 | interne Admin-JSON-API `/admin-api/*` (Bearer `DP_ADMIN_API_TOKEN` + Akteur) | nur im Compose-Netz |
+| `web` (SvelteKit, Svelte 5, Tailwind 4) | 8142 | öffentliche Seiten `/`, `/anleitung`, `/downloads`, `/datenschutz`, `/einladung` und die Admin-Oberfläche `/admin` | TrueNAS-Traefik (öffentlich) bzw. Pi-Traefik mit Authentik (Admin) |
+
 ```
-driverpilot_server/
-  config.py     Einstellungen aus DP_*-Umgebungsvariablen; Limits nur verschärfbar
-  contract.py   lädt Schemas/rules.json/errors.json aus contract/v1; Prüfreihenfolge der Annahme
-  db.py         SQLite (WAL, secure_delete), Schema
-  service.py    Fachlogik: Pairing, Fälle, Idempotenz, Zustandsautomat, Freigabe, Worker-Leases, Bereinigung
-  api.py        Client-API /api/v1 (Starlette), Fehlerobjekte, Rate-Limits, Bodygrenze
-  admin.py      Adminansicht (eigener Port), Authentik-Header nur vom Proxy, CSRF
-  worker.py     Hintergrundworker + Adapter (none | test)
-  main.py       startet API, Admin, Worker, Bereinigung in einem Prozess
-contract/       Vertrag v1 (Schemas, Fixtures, Regeln) + validate_contract.py
-tests/          pytest gegen alle Vertrags-Fixtures, Transportfälle, Isolation, Worker, Admin
-deploy/         Traefik-/DNS-Schnipsel für TrueNAS, Pi-Traefik, Cloudflare
+driverpilot_server/        Python: Vertrag, Fachlogik, Worker
+  config.py  contract.py  db.py  service.py  api.py  admin.py (JSON)  public.py (Downloads)
+  worker.py  codex.py  releases.py  ratelimit.py  main.py
+web/                       SvelteKit-Oberfläche
+  src/routes/(public)/     Start, Anleitung, Downloads, Datenschutz, Einladung
+  src/routes/admin/        Fälle, Fallseite mit Entwurfs-Editor, Einladungen, Zugänge, KI, Releases, Audit
+  src/lib/server/          Identität (Authentik nur vom Pi-Traefik), Backend-Aufrufe
+  src/lib/content/         Anleitung für Freunde (Markdown)
+contract/                  Vertrag v1 (Schemas, Fixtures, Regeln) + validate_contract.py
+tests/                     pytest gegen alle Vertrags-Fixtures, Transportfälle, Isolation, Worker, Admin-API
+deploy/                    Traefik-/DNS-Schnipsel für TrueNAS, Pi-Traefik, Cloudflare
 ```
 
-Ein Prozess, zwei Ports:
+Die Admin-Oberfläche verlangt, dass der Request direkt vom Pi-Traefik kommt
+(`ADMIN_TRUSTED_PROXIES`) und Authentik einen Benutzer der Gruppe `ADMIN_GROUP` meldet. Erst dann
+ruft sie die interne Admin-API mit dem gemeinsamen Token und dem Benutzernamen als Akteur auf.
+Formulare sind durch SvelteKits Origin-Prüfung gegen CSRF geschützt; alle Seiten senden eine
+strikte CSP mit Nonces.
 
-| Port | Zweck | Erreichbar über |
-|---|---|---|
-| 8140 | Client-API `/api/v1`, `/healthz`, `/readyz`; öffentliche Seiten `/`, `/anleitung`, `/datenschutz`, `/downloads/` | Cloudflare → UDM → TrueNAS-Traefik (`cloudflare-only`) → `10.0.30.3:8140` |
-| 8141 | Adminansicht | Pi-Traefik `dns-prod-2` (`agent-secured` + Authentik `sso`) → `10.0.30.3:8141` |
-
-Der Admin-Port nimmt Identitätsheader (`X-authentik-username`, `X-authentik-groups`) nur von
-`DP_ADMIN_TRUSTED_PROXIES` an und verlangt die Gruppe `DP_ADMIN_GROUP`. Jede Mutation braucht
-einen CSRF-Token (HMAC-signiertes Cookie + Formularfeld) und einen same-origin Fetch-Kontext.
+**Einladungslink:** Die Seite „Einladungen“ erzeugt einen Link
+`https://driverpilot.cstrube.de/einladung#c=<code>&n=<Vorname>`. Code und Name stehen im
+Fragment, das der Browser nie an einen Server schickt (auch nicht an Cloudflare). Die
+Einladungsseite liest es, entfernt es aus Adresszeile und Verlauf und führt durch Download,
+Installation und Koppeln mit Kopierknöpfen für Serveradresse und Code. Das weicht bewusst von der
+Vertragsregel „Einladungen nie in URLs“ ab, die sich auf HTTP-Anfragen bezieht: Das Fragment
+erreicht keinen Server, der Code bleibt einmalig und befristet.
 
 ## Entwicklung
 
@@ -43,11 +53,15 @@ einen CSRF-Token (HMAC-signiertes Cookie + Formularfeld) und einen same-origin F
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 .venv/bin/python contract/validate_contract.py contract/v1   # Vertrag selbst konsistent?
 .venv/bin/python -m pytest -q                                # Server gegen den Vertrag
-DP_ADMIN_DEV_USER=dev DP_DATA_DIR=./data .venv/bin/python -m driverpilot_server.main
+DP_ADMIN_API_TOKEN=dev DP_DATA_DIR=./data .venv/bin/python -m driverpilot_server.main
+
+cd web && npm install && npm run check && npm run build
+ORIGIN=http://127.0.0.1:3000 DP_ADMIN_API_TOKEN=dev ADMIN_DEV_USER=dev node build
 ```
 
-Mit `DP_ADMIN_DEV_USER` (und ohne `DP_ADMIN_TRUSTED_PROXIES`) ist die Adminansicht lokal ohne
-Proxy nutzbar; im Betrieb bleibt die Variable leer.
+Mit `ADMIN_DEV_USER` (und ohne `ADMIN_TRUSTED_PROXIES`) ist die Admin-Oberfläche lokal ohne
+Proxy nutzbar; im Betrieb bleibt die Variable leer. `ORIGIN` braucht es lokal, weil SvelteKit
+ohne Proxy-Header sonst `https` annimmt und Formulare als Cross-Site ablehnt.
 
 ## Vertragsumsetzung
 
@@ -71,10 +85,12 @@ Proxy nutzbar; im Betrieb bleibt die Variable leer.
 
 ```
 git clone <repo> ~/driverpilot-server && cd ~/driverpilot-server
-cp .env.example .env            # ggf. anpassen
-mkdir -p data && sudo chown 10001:10001 data && chmod 700 data
+cp .env.example .env            # DP_ADMIN_API_TOKEN setzen, Rest pruefen
+mkdir -p data downloads && sudo chown 10001:10001 data && chmod 700 data
+sudo chown 10001:$USER downloads && chmod 775 downloads
 docker compose up -d --build
 curl -s http://127.0.0.1:8140/readyz     # ready
+curl -s http://127.0.0.1:8142/healthz    # ok (web)
 curl -s http://127.0.0.1:8140/api/v1/capabilities | head -c 200
 ```
 
@@ -83,7 +99,7 @@ dasselbe Kommando; das Datenbankschema wird nur ergänzt, nie umgebaut (`CREATE 
 
 Neustart verliert keine angenommenen Fälle (SQLite, `synchronous=FULL`). Leases, die beim
 Neustart offen waren, werden beim Start als `analysis_failed`/`outcome_unknown` markiert und in
-der Adminansicht sichtbar. Bereinigung läuft stündlich: abgelaufene Fälle werden physisch
+der Admin-Oberfläche sichtbar. Bereinigung läuft stündlich: abgelaufene Fälle werden physisch
 gelöscht (secure_delete + WAL-Checkpoint), Audit nach 30 Tagen, Tombstones mit Ablauf des Zugangs.
 
 ### Datenschutz und Backups
@@ -95,9 +111,9 @@ Einladungen; das Audit nur Metadaten (Akteur, Operation, Fall-ID, Ergebnis).
 
 ### Öffentliche Seiten und Downloads
 
-Auf dem API-Host liegen eine Anleitung für Freunde (`docs/public/anleitung.md`, als HTML
-gerendert), der Datenschutzhinweis und eine Downloadseite für die signierten Release-Dateien
-des Windows-Clients. Die Dateien liegen in `./downloads` und kommen automatisch dorthin: GitHub
+Die Oberfläche (`web`) zeigt eine Anleitung für Freunde (`web/src/lib/content/anleitung.md`), den
+Datenschutzhinweis (aus `privacy_notice.txt` über `/public-api/privacy`) und eine Downloadseite
+für die signierten Release-Dateien des Windows-Clients. Python liefert die Dateien selbst aus. Die Dateien liegen in `./downloads` und kommen automatisch dorthin: GitHub
 ruft beim Veröffentlichen eines Releases `POST /hooks/github` (HMAC-signiert), der Server wartet
 auf `SHA256SUMS.txt` plus alle gelisteten Dateien, prüft die Prüfsummen und tauscht atomar ein
 (`driverpilot_server/releases.py`). Alternativ `POST /hooks/sync-release` mit Bearer-Token, die
@@ -118,7 +134,7 @@ braucht eine neue `DP_PRIVACY_NOTICE_VERSION`; Berichte mit alter Version werden
 `external_ai_offered=false`, der Client bietet die KI-Option nicht an.
 `test`: synthetischer Adapter, jeder Text trägt `TESTADAPTER`; nur für Tests.
 `codex` (Pilot-Entscheidung Christian, 2026-10-01): ChatGPT über denselben OAuth-Weg wie die
-Codex-CLI (Device-Code-Login in der Adminansicht unter „KI (ChatGPT)“ oder Import einer
+Codex-CLI (Device-Code-Login in der Admin-Oberfläche unter „KI (ChatGPT)“ oder Import einer
 `~/.codex/auth.json`). Tokens liegen in `/data/codex-auth.json` (0600) und werden per
 Refresh-Token erneuert. **Ohne Login** meldet `/capabilities` `external_ai_offered=false` und
 alle Fälle laufen manuell; Fälle mit KI-Zustimmung warten in `queued`, bis ein Login da ist.

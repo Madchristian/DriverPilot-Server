@@ -12,7 +12,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY driverpilot_server ./driverpilot_server
 COPY contract ./contract
 COPY privacy_notice.txt .
-COPY docs/public ./docs/public
 RUN mkdir -p /downloads
 
 RUN mkdir -p /data && chown driverpilot:driverpilot /data

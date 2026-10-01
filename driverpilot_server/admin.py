@@ -1,336 +1,368 @@
-"""Adminansicht (eigener Port). Identitaet kommt per Authentik-ForwardAuth vom
-LAN-Traefik; die Header werden nur akzeptiert, wenn der Request von einem der
-konfigurierten Proxys stammt. Jede Mutation braucht einen CSRF-Token
-(HMAC-signiertes Cookie + Formularfeld) und einen passenden Fetch-Kontext.
+"""Interne Admin-JSON-API (Port 8141, nur im Docker-Netz) fuer die SvelteKit-Oberflaeche.
+
+Die Oberflaeche (`web/`) prueft die Authentik-Identitaet am Rand (nur vom konfigurierten
+Pi-Traefik, Gruppe Homelab-Admins) und ruft diese API mit einem gemeinsamen Token auf:
+
+    Authorization: Bearer <DP_ADMIN_API_TOKEN>
+    X-DP-Actor: <Authentik-Benutzername>
+
+Ohne gueltiges Token gibt es 401. Der Akteur landet im Audit. Diese API ist nie oeffentlich
+geroutet; im Compose-Stack ist der Port nicht auf dem Host veroeffentlicht.
 """
 
 from __future__ import annotations
 
-import hashlib
+import asyncio
 import hmac
-import ipaddress
 import json
 import logging
-import secrets
-from pathlib import Path
+import re
+from dataclasses import asdict, is_dataclass
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from .service import AdminError, Service
+from .contract import is_uuid
+from .public import Public
+from .service import RESULT_CONTENT_KEYS, AdminError, Service
 
 log = logging.getLogger("driverpilot.admin")
-TEMPLATES = Path(__file__).resolve().parent / "templates"
-CSRF_COOKIE = "dp_admin_csrf"
+ACTOR_RE = re.compile(r"^[A-Za-z0-9@._+-]{1,80}$")
+TAG_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+MAX_BODY = 512 * 1024
 
 
-class Forbidden(Exception):
+class Unauthorized(Exception):
     pass
 
 
-class Admin:
+class BadRequest(Exception):
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
+def row(value) -> dict | None:
+    return dict(value) if value is not None else None
+
+
+def rows(values) -> list[dict]:
+    return [dict(v) for v in values]
+
+
+def strip_body(value) -> dict:
+    return {k: v for k, v in dict(value).items() if k not in ("body_json", "report_bytes")}
+
+
+class AdminApi:
     def __init__(self, service: Service):
         self.service = service
         self.settings = service.settings
-        self.trusted = [ipaddress.ip_network(net, strict=False) for net in self.settings.admin_trusted_proxies]
-        self.env = Environment(loader=FileSystemLoader(str(TEMPLATES)), autoescape=select_autoescape(["html"]))
-        self.env.filters["json"] = lambda value: json.dumps(value, ensure_ascii=False, indent=2)
-        self.env.filters["short"] = lambda value: (value or "")[:8]
 
-    # ------------------------------------------------------------------ Identitaet und CSRF
+    # ------------------------------------------------------------------ Rahmen
 
-    def identity(self, request: Request) -> str:
-        peer = request.client.host if request.client else ""
+    def actor(self, request: Request) -> str:
+        token = self.settings.admin_api_token
+        scheme, _, given = request.headers.get("authorization", "").partition(" ")
+        if not token or scheme.lower() != "bearer" or not hmac.compare_digest(given.strip(), token):
+            raise Unauthorized()
+        actor = request.headers.get("x-dp-actor", "").strip()
+        if not ACTOR_RE.match(actor):
+            raise Unauthorized()
+        return actor
+
+    async def body(self, request: Request) -> dict:
+        data = b""
+        async for chunk in request.stream():
+            data += chunk
+            if len(data) > MAX_BODY:
+                raise BadRequest("Anfrage zu groß")
+        if not data.strip():
+            return {}
         try:
-            peer_ip = ipaddress.ip_address(peer)
-            via_proxy = any(peer_ip in net for net in self.trusted)
+            value = json.loads(data.decode("utf-8"))
         except ValueError:
-            via_proxy = False
-        if via_proxy:
-            user = request.headers.get("x-authentik-username", "").strip()
-            groups = [g.strip() for g in request.headers.get("x-authentik-groups", "").split("|")]
-            if user and self.settings.admin_group in groups:
-                return user
-            raise Forbidden()
-        if self.settings.admin_dev_user and not self.trusted:
-            return self.settings.admin_dev_user
-        raise Forbidden()
-
-    def _sign(self, value: str) -> str:
-        return hmac.new(self.service.secret, value.encode("ascii"), hashlib.sha256).hexdigest()
-
-    def csrf_token(self, request: Request) -> tuple[str, bool]:
-        """Gibt (Token, neu_gesetzt) zurueck. Das Cookie traegt token.signatur."""
-        raw = request.cookies.get(CSRF_COOKIE, "")
-        token, _, signature = raw.partition(".")
-        if token and signature and hmac.compare_digest(self._sign(token), signature):
-            return token, False
-        return secrets.token_urlsafe(24), True
-
-    def set_csrf_cookie(self, response: Response, token: str) -> None:
-        response.set_cookie(
-            CSRF_COOKIE, f"{token}.{self._sign(token)}", httponly=True, secure=True, samesite="strict", max_age=12 * 3600, path="/"
-        )
-
-    async def check_csrf(self, request: Request) -> dict:
-        site = request.headers.get("sec-fetch-site")
-        if site not in (None, "same-origin", "none"):
-            raise Forbidden()
-        origin = request.headers.get("origin")
-        host = request.headers.get("host", "")
-        if origin and origin.split("://", 1)[-1] != host:
-            raise Forbidden()
-        form = await request.form()
-        token, fresh = self.csrf_token(request)
-        if fresh or not hmac.compare_digest(form.get("csrf", ""), token):
-            raise Forbidden()
-        return dict(form)
-
-    # ------------------------------------------------------------------ Rendern
-
-    def render(self, request: Request, template: str, **context) -> HTMLResponse:
-        user = self.identity(request)
-        token, fresh = self.csrf_token(request)
-        html = self.env.get_template(template).render(
-            user=user, csrf=token, settings=self.settings.describe(), now=self.service.now_text(),
-            flash=request.query_params.get("m"), **context,
-        )
-        response = HTMLResponse(html)
-        if fresh:
-            self.set_csrf_cookie(response, token)
-        response.headers["Cache-Control"] = "no-store"
-        response.headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "same-origin"
-        return response
+            raise BadRequest("Kein gültiges JSON") from None
+        if not isinstance(value, dict):
+            raise BadRequest("JSON-Objekt erwartet")
+        return value
 
     @staticmethod
-    def redirect(path: str, message: str | None = None) -> RedirectResponse:
-        from urllib.parse import quote
+    def ok(data, status: int = 200) -> JSONResponse:
+        return JSONResponse(data, status_code=status, headers={"Cache-Control": "no-store"})
 
-        target = f"{path}?m={quote(message)}" if message else path
-        return RedirectResponse(target, status_code=303)
+    # ------------------------------------------------------------------ Uebersicht und Faelle
 
-    # ------------------------------------------------------------------ Seiten
+    async def overview(self, request: Request) -> Response:
+        self.actor(request)
+        return self.ok({
+            "now": self.service.now_text(),
+            "stats": self.service.stats(),
+            "settings": self.settings.describe(),
+            "ai_offered": self.service.external_ai_offered(),
+            "cases": rows(self.service.list_cases()),
+        })
 
-    async def index(self, request: Request) -> Response:
-        self.identity(request)
-        return self.render(request, "index.html", stats=self.service.stats(), cases=self.service.list_cases())
-
-    async def case(self, request: Request) -> Response:
-        self.identity(request)
-        detail = self.service.case_detail(request.path_params["case_id"])
+    def _case_payload(self, case_id: str) -> dict:
+        detail = self.service.case_detail(case_id)
         if detail is None:
             raise HTTPException(404)
+        case = strip_body(detail["case"])
         current = detail["current_draft"]
+        base_revision = None
         if current is not None:
-            draft_text = json.dumps(json.loads(current["body_json"]), ensure_ascii=False, indent=2)
-            ai_assisted = current["origin"] == "ai"
-            problems = self.service.validate_draft(detail["case"]["id"], json.loads(current["body_json"]))
-        else:
-            draft_text = json.dumps(self.service.draft_skeleton(detail["report"]), ensure_ascii=False, indent=2)
-            ai_assisted = False
+            content = json.loads(current["body_json"])
+            problems = self.service.validate_draft(case["id"], content)
+        elif detail["results"]:
+            # Nach einer Freigabe: die zuletzt freigegebene Revision als Ausgangspunkt fuer die naechste.
+            latest = json.loads(detail["results"][0]["body_json"])
+            content = {key: latest[key] for key in RESULT_CONTENT_KEYS}
+            base_revision = latest["revision"]
             problems = []
-        results = [dict(r, body=json.loads(r["body_json"])) for r in detail["results"]]
-        return self.render(
-            request, "case.html", d=detail, draft_text=draft_text, ai_assisted=ai_assisted, problems=problems,
-            blocking=[p for p in problems if "(Hinweis" not in p],
-            results=results, report_json=json.dumps(detail["report"], ensure_ascii=False, indent=2),
-            can_release=self.service.contract.transition_allowed(detail["case"]["status"], "released", "admin"),
-            can_take_over=self.service.contract.transition_allowed(detail["case"]["status"], "awaiting_review", "admin"),
-            can_retry=self.service.external_ai_offered() and detail["case"]["external_ai_allowed"]
-            and self.service.contract.transition_allowed(detail["case"]["status"], "queued", "admin"),
-        )
+        else:
+            content = self.service.draft_skeleton(detail["report"])
+            problems = []
+        contract = self.service.contract
+        return {
+            "now": self.service.now_text(),
+            "case": case,
+            "report": detail["report"],
+            "client": row(detail["client"]),
+            "draft": {
+                "id": current["id"] if current is not None else None,
+                "origin": current["origin"] if current is not None else None,
+                "author": current["author"] if current is not None else None,
+                "created_at": current["created_at"] if current is not None else None,
+                "model": current["model"] if current is not None else None,
+                "content": content,
+                "saved": current is not None,
+                "base_revision": base_revision,
+            },
+            "problems": [p for p in problems if "(Hinweis" not in p],
+            "hints": [p for p in problems if "(Hinweis" in p],
+            "drafts": [strip_body(d) for d in detail["drafts"]],
+            "results": [{**strip_body(r), "body": json.loads(r["body_json"])} for r in detail["results"]],
+            "feedback": rows(detail["feedback"]),
+            "runs": rows(detail["runs"]),
+            "jobs": rows(detail["jobs"]),
+            "can": {
+                "release": contract.transition_allowed(case["status"], "released", "admin"),
+                "take_over": contract.transition_allowed(case["status"], "awaiting_review", "admin"),
+                "retry": bool(self.service.external_ai_offered() and case["external_ai_allowed"]
+                              and contract.transition_allowed(case["status"], "queued", "admin")),
+            },
+        }
+
+    async def case(self, request: Request) -> Response:
+        self.actor(request)
+        case_id = request.path_params["case_id"]
+        if not is_uuid(case_id):
+            raise HTTPException(404)
+        return self.ok(self._case_payload(case_id))
 
     async def case_action(self, request: Request) -> Response:
-        user = self.identity(request)
-        form = await self.check_csrf(request)
+        actor = self.actor(request)
         case_id = request.path_params["case_id"]
         action = request.path_params["action"]
-        back = f"/cases/{case_id}"
-        try:
-            version = int(form.get("version", "0"))
-            if action == "draft":
-                try:
-                    content = json.loads(form.get("draft", ""))
-                except json.JSONDecodeError as exc:
-                    raise AdminError(f"Entwurf ist kein gueltiges JSON: {exc.msg} (Zeile {exc.lineno})")
-                if not isinstance(content, dict):
-                    raise AdminError("Entwurf muss ein JSON-Objekt sein")
-                self.service.save_draft(case_id, content, user, ai_assisted=form.get("ai_assisted") == "1")
-                message = "Entwurf gespeichert."
-            elif action == "release":
-                revision = self.service.release(case_id, form.get("draft_id", ""), version, user)
-                message = f"Revision {revision} freigegeben."
-            elif action == "take-over":
-                self.service.take_over(case_id, version, user)
-                message = "Fall uebernommen; manuelle Analyse."
-            elif action == "retry":
-                self.service.retry(case_id, version, user)
-                message = "Neuversuch eingereiht."
-            elif action == "delete":
-                self.service.admin_delete(case_id, user)
-                return self.redirect("/", "Fall geloescht.")
-            else:
-                raise HTTPException(404)
-        except AdminError as exc:
-            return self.redirect(back, f"Fehler: {exc}")
-        return self.redirect(back, message)
+        if not is_uuid(case_id):
+            raise HTTPException(404)
+        data = await self.body(request)
+        version = data.get("version")
+        if action in ("release", "take-over", "retry") and not isinstance(version, int):
+            raise BadRequest("version fehlt")
+        if action in ("draft", "validate"):
+            content = data.get("content")
+            if not isinstance(content, dict):
+                raise BadRequest("content muss ein Objekt sein")
+            if action == "validate":
+                problems = self.service.validate_draft(case_id, content)
+                return self.ok({"problems": [p for p in problems if "(Hinweis" not in p],
+                                "hints": [p for p in problems if "(Hinweis" in p]})
+            draft_id = self.service.save_draft(case_id, content, actor, ai_assisted=bool(data.get("ai_assisted")))
+            return self.ok({"message": "Entwurf gespeichert.", "draft_id": draft_id})
+        if action == "release":
+            revision = self.service.release(case_id, str(data.get("draft_id", "")), version, actor)
+            return self.ok({"message": f"Revision {revision} freigegeben.", "revision": revision})
+        if action == "take-over":
+            self.service.take_over(case_id, version, actor)
+            return self.ok({"message": "Fall übernommen; manuelle Analyse."})
+        if action == "retry":
+            self.service.retry(case_id, version, actor)
+            return self.ok({"message": "Neuversuch eingereiht."})
+        if action == "delete":
+            self.service.admin_delete(case_id, actor)
+            return self.ok({"message": "Fall gelöscht."})
+        raise HTTPException(404)
+
+    # ------------------------------------------------------------------ Einladungen und Zugaenge
 
     async def invitations(self, request: Request) -> Response:
-        self.identity(request)
-        return self.render(request, "invitations.html", invitations=self.service.list_invitations(), new_code=None)
+        self.actor(request)
+        return self.ok({"now": self.service.now_text(), "public_base_url": self.settings.public_base_url,
+                        "invitations": rows(self.service.list_invitations())})
 
     async def invitations_create(self, request: Request) -> Response:
-        user = self.identity(request)
-        form = await self.check_csrf(request)
+        actor = self.actor(request)
+        data = await self.body(request)
         try:
-            days = max(1, min(365, int(form.get("days", "1") or 1)))
-            max_uses = max(1, min(500, int(form.get("max_uses", "1") or 1)))
-            label = (form.get("label") or "ohne Bezeichnung").strip()[:80]
-            invitation_id, code = self.service.create_invitation(label, user, days * 86400, max_uses)
-        except (AdminError, ValueError) as exc:
-            return self.redirect("/invitations", f"Fehler: {exc}")
-        return self.render(
-            request, "invitations.html", invitations=self.service.list_invitations(),
-            new_code=code, new_label=label, base_url=self.settings.public_base_url,
-        )
+            days = max(1, min(365, int(data.get("days") or 1)))
+            max_uses = max(1, min(500, int(data.get("max_uses") or 1)))
+        except (TypeError, ValueError):
+            raise BadRequest("Tage und Einlösungen müssen Zahlen sein") from None
+        label = str(data.get("label") or "").strip()[:80] or "ohne Bezeichnung"
+        invitation_id, code = self.service.create_invitation(label, actor, days * 86400, max_uses)
+        return self.ok({"id": invitation_id, "code": code, "label": label, "days": days, "max_uses": max_uses,
+                        "base_url": self.settings.public_base_url}, status=201)
 
     async def invitation_revoke(self, request: Request) -> Response:
-        user = self.identity(request)
-        await self.check_csrf(request)
-        try:
-            self.service.revoke_invitation(request.path_params["invitation_id"], user)
-        except AdminError as exc:
-            return self.redirect("/invitations", f"Fehler: {exc}")
-        return self.redirect("/invitations", "Einladung widerrufen.")
+        actor = self.actor(request)
+        self.service.revoke_invitation(request.path_params["invitation_id"], actor)
+        return self.ok({"message": "Einladung widerrufen."})
 
     async def clients(self, request: Request) -> Response:
-        self.identity(request)
-        return self.render(request, "clients.html", clients=self.service.list_clients())
+        self.actor(request)
+        return self.ok({"now": self.service.now_text(), "clients": rows(self.service.list_clients())})
 
     async def client_revoke(self, request: Request) -> Response:
-        user = self.identity(request)
-        await self.check_csrf(request)
-        try:
-            self.service.revoke_client(request.path_params["client_id"], user)
-        except AdminError as exc:
-            return self.redirect("/clients", f"Fehler: {exc}")
-        return self.redirect("/clients", "Zugang widerrufen; wirkt beim naechsten Request.")
+        actor = self.actor(request)
+        self.service.revoke_client(request.path_params["client_id"], actor)
+        return self.ok({"message": "Zugang widerrufen; wirkt beim nächsten Request."})
 
     async def audit(self, request: Request) -> Response:
-        self.identity(request)
-        return self.render(request, "audit.html", entries=self.service.audit_entries())
+        self.actor(request)
+        return self.ok({"entries": rows(self.service.audit_entries())})
 
-    # ------------------------------------------------------------------ Codex (ChatGPT-OAuth)
+    # ------------------------------------------------------------------ Codex
+
+    def _codex_status(self) -> dict | None:
+        auth = self.service.codex_auth
+        if auth is None:
+            return None
+        status = auth.status()
+        device = status.get("device")
+        status["device"] = asdict(device) if is_dataclass(device) else None
+        return status
 
     async def codex(self, request: Request) -> Response:
-        self.identity(request)
-        auth = self.service.codex_auth
-        return self.render(
-            request, "codex.html", auth=auth, status=auth.status() if auth else None,
-            ai_offered=self.service.external_ai_offered(), budget_used=self.service.ai_budget_used(),
-        )
+        self.actor(request)
+        return self.ok({
+            "provider": self.settings.ai_provider,
+            "model": self.settings.codex_model,
+            "status": self._codex_status(),
+            "ai_offered": self.service.external_ai_offered(),
+            "budget_used": self.service.ai_budget_used(),
+            "budget_total": self.settings.ai_daily_calls,
+        })
 
     async def codex_action(self, request: Request) -> Response:
-        user = self.identity(request)
-        form = await self.check_csrf(request)
+        actor = self.actor(request)
+        data = await self.body(request)
         auth = self.service.codex_auth
         action = request.path_params["action"]
         if auth is None:
-            return self.redirect("/codex", "Fehler: Adapter codex ist nicht konfiguriert (DP_AI_PROVIDER).")
+            raise BadRequest("Adapter codex ist nicht konfiguriert (DP_AI_PROVIDER).")
         try:
             if action == "login":
-                device = await request.app.state.run_blocking(auth.start_device_login)
+                device = await asyncio.to_thread(auth.start_device_login)
                 message = f"Code {device.user_code} auf {device.verification_url} eingeben."
             elif action == "cancel":
                 auth.cancel_device_login()
                 message = "Login abgebrochen."
             elif action == "logout":
                 auth.logout()
-                message = "Abgemeldet; Tokendatei geloescht."
+                message = "Abgemeldet; Tokendatei gelöscht."
             elif action == "import":
-                auth.import_auth_json(form.get("auth_json", ""))
-                message = "auth.json uebernommen."
+                auth.import_auth_json(str(data.get("auth_json", "")))
+                message = "auth.json übernommen."
             else:
                 raise HTTPException(404)
         except (ValueError, RuntimeError) as exc:
-            return self.redirect("/codex", f"Fehler: {exc}")
-        self.service.audit(user, f"codex.{action}", None, "ok")
-        return self.redirect("/codex", message)
+            raise BadRequest(str(exc)) from None
+        self.service.audit(actor, f"codex.{action}", None, "ok")
+        return self.ok({"message": message, "status": self._codex_status()})
 
-    # ------------------------------------------------------------------ Releases (Downloads)
-
-    def _download_entries(self) -> list[dict]:
-        from .public import Public
-
-        return Public(self.settings, "")._entries()
+    # ------------------------------------------------------------------ Releases
 
     async def releases(self, request: Request) -> Response:
-        self.identity(request)
+        self.actor(request)
         sync = self.service.releases
-        return self.render(
-            request, "releases.html", files=self._download_entries(), sync=sync,
-            last=(sync.last if sync else {"state": "idle"}), configured=bool(sync and sync.configured()),
-            webhook_configured=bool(self.settings.github_webhook_secret), endpoint_configured=bool(self.settings.release_sync_token),
-        )
+        return self.ok({
+            "configured": bool(sync and sync.configured()),
+            "webhook_configured": bool(self.settings.github_webhook_secret),
+            "endpoint_configured": bool(self.settings.release_sync_token),
+            "client_repo": self.settings.client_repo,
+            "keep": self.settings.releases_keep,
+            "last": dict(sync.last) if sync else {"state": "idle"},
+            "files": Public(self.settings).entries_json(),
+            "public_base_url": self.settings.public_base_url,
+        })
 
     async def releases_fetch(self, request: Request) -> Response:
-        user = self.identity(request)
-        form = await self.check_csrf(request)
+        actor = self.actor(request)
+        data = await self.body(request)
         sync = self.service.releases
         if sync is None or not sync.configured():
-            return self.redirect("/releases", "Fehler: Release-Sync ist nicht konfiguriert (DP_GITHUB_TOKEN).")
-        tag = (form.get("tag") or "").strip() or None
-        import re as _re
+            raise BadRequest("Release-Sync ist nicht konfiguriert (DP_GITHUB_TOKEN).")
+        tag = str(data.get("tag") or "").strip() or None
+        if tag and not TAG_RE.match(tag):
+            raise BadRequest("Ungültiger Tag.")
+        started = sync.trigger(tag, source=actor)
+        return self.ok({"message": "Sync gestartet." if started else "Es läuft bereits ein Sync.", "started": started}, status=202)
 
-        if tag and not _re.fullmatch(r"[A-Za-z0-9._-]{1,64}", tag):
-            return self.redirect("/releases", "Fehler: ungueltiger Tag.")
-        started = sync.trigger(tag, source=user)
-        return self.redirect("/releases", "Sync gestartet." if started else "Es laeuft bereits ein Sync.")
+    # ------------------------------------------------------------------ Fehler
 
     async def healthz(self, request: Request) -> Response:
-        return PlainTextResponse("ok")
+        return Response("ok", media_type="text/plain")
 
-    async def handle_forbidden(self, request: Request, exc: Forbidden) -> Response:
-        return PlainTextResponse("Zugriff verweigert.", status_code=403)
+    async def handle_unauthorized(self, request: Request, exc: Unauthorized) -> Response:
+        return JSONResponse({"error": "Nicht autorisiert."}, status_code=401)
+
+    async def handle_bad_request(self, request: Request, exc: BadRequest) -> Response:
+        return JSONResponse({"error": exc.message}, status_code=400)
+
+    async def handle_admin_error(self, request: Request, exc: AdminError) -> Response:
+        return JSONResponse({"error": str(exc)}, status_code=409)
 
     async def handle_http(self, request: Request, exc: HTTPException) -> Response:
-        return PlainTextResponse("Nicht gefunden." if exc.status_code == 404 else "Fehler.", status_code=exc.status_code)
+        return JSONResponse({"error": "Nicht gefunden." if exc.status_code in (404, 405) else "Fehler."},
+                            status_code=404 if exc.status_code == 405 else exc.status_code)
 
     async def handle_unexpected(self, request: Request, exc: Exception) -> Response:
-        log.exception("Adminfehler")
-        return PlainTextResponse("Interner Fehler.", status_code=500)
+        log.exception("Admin-API-Fehler")
+        return JSONResponse({"error": "Interner Fehler."}, status_code=500)
 
 
 def create_admin_app(service: Service) -> Starlette:
-    admin = Admin(service)
+    api = AdminApi(service)
+    p = "/admin-api"
     routes = [
-        Route("/", admin.index, methods=["GET"]),
-        Route("/cases/{case_id}", admin.case, methods=["GET"]),
-        Route("/cases/{case_id}/{action}", admin.case_action, methods=["POST"]),
-        Route("/invitations", admin.invitations, methods=["GET"]),
-        Route("/invitations", admin.invitations_create, methods=["POST"]),
-        Route("/invitations/{invitation_id}/revoke", admin.invitation_revoke, methods=["POST"]),
-        Route("/clients", admin.clients, methods=["GET"]),
-        Route("/clients/{client_id}/revoke", admin.client_revoke, methods=["POST"]),
-        Route("/audit", admin.audit, methods=["GET"]),
-        Route("/releases", admin.releases, methods=["GET"]),
-        Route("/releases/fetch", admin.releases_fetch, methods=["POST"]),
-        Route("/codex", admin.codex, methods=["GET"]),
-        Route("/codex/{action}", admin.codex_action, methods=["POST"]),
-        Route("/healthz", admin.healthz, methods=["GET"]),
+        Route(f"{p}/overview", api.overview, methods=["GET"]),
+        Route(f"{p}/cases/{{case_id}}", api.case, methods=["GET"]),
+        Route(f"{p}/cases/{{case_id}}/{{action}}", api.case_action, methods=["POST"]),
+        Route(f"{p}/invitations", api.invitations, methods=["GET"]),
+        Route(f"{p}/invitations", api.invitations_create, methods=["POST"]),
+        Route(f"{p}/invitations/{{invitation_id}}/revoke", api.invitation_revoke, methods=["POST"]),
+        Route(f"{p}/clients", api.clients, methods=["GET"]),
+        Route(f"{p}/clients/{{client_id}}/revoke", api.client_revoke, methods=["POST"]),
+        Route(f"{p}/audit", api.audit, methods=["GET"]),
+        Route(f"{p}/codex", api.codex, methods=["GET"]),
+        Route(f"{p}/codex/{{action}}", api.codex_action, methods=["POST"]),
+        Route(f"{p}/releases", api.releases, methods=["GET"]),
+        Route(f"{p}/releases/fetch", api.releases_fetch, methods=["POST"]),
+        Route("/healthz", api.healthz, methods=["GET"]),
     ]
     app = Starlette(
         routes=routes,
-        exception_handlers={Forbidden: admin.handle_forbidden, HTTPException: admin.handle_http, Exception: admin.handle_unexpected},
+        exception_handlers={
+            Unauthorized: api.handle_unauthorized,
+            BadRequest: api.handle_bad_request,
+            AdminError: api.handle_admin_error,
+            HTTPException: api.handle_http,
+            Exception: api.handle_unexpected,
+        },
     )
-    app.state.admin = admin
-    import asyncio
-
-    app.state.run_blocking = lambda fn, *args: asyncio.to_thread(fn, *args)
+    app.state.admin = api
     return app

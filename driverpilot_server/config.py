@@ -55,11 +55,8 @@ class Settings:
 
     # Reverse Proxies, deren Forwarded-/Client-IP-Header vertraut wird (API-Seite).
     api_trusted_proxies: list[str] = field(default_factory=lambda: _env_list("DP_API_TRUSTED_PROXIES", []))
-    # Reverse Proxy, von dem die Authentik-Identitaetsheader der Adminansicht akzeptiert werden.
-    admin_trusted_proxies: list[str] = field(default_factory=lambda: _env_list("DP_ADMIN_TRUSTED_PROXIES", []))
-    admin_group: str = field(default_factory=lambda: os.environ.get("DP_ADMIN_GROUP", "Homelab-Admins"))
-    # Nur fuer lokale Entwicklung/Tests: Adminzugang ohne Proxy-Identitaet als dieser Benutzer.
-    admin_dev_user: str = field(default_factory=lambda: os.environ.get("DP_ADMIN_DEV_USER", ""))
+    # Gemeinsames Token zwischen SvelteKit-Oberflaeche (web/) und interner Admin-API (Port 8141).
+    admin_api_token: str = field(default_factory=lambda: os.environ.get("DP_ADMIN_API_TOKEN", ""))
 
     privacy_notice_version: str = field(default_factory=lambda: os.environ.get("DP_PRIVACY_NOTICE_VERSION", "2026-10-01.2"))
     privacy_notice_file: Path = field(

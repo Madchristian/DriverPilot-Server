@@ -36,6 +36,8 @@ async def serve() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("httpx").setLevel(logging.WARNING)  # keine Request-Zeilen des Modellaufrufs im Log
     settings = Settings()
+    if not settings.admin_api_token:
+        log.warning("DP_ADMIN_API_TOKEN ist leer: die Admin-API lehnt alle Anfragen ab")
     service, worker = build(settings)
     service.expire_stale_leases()
     log.info(

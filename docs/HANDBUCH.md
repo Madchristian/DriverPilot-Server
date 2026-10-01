@@ -1,6 +1,6 @@
 # Handbuch: DriverPilot-Ferndiagnose („Hilfe von Christian“)
 
-Stand 2026-10-01. Gilt für den Server in diesem Repo (Pilot auf `rpi4-400`) und die Funktion
+Stand 2026-10-01 (SvelteKit-Oberfläche). Gilt für den Server in diesem Repo (Pilot auf `rpi4-400`) und die Funktion
 „Hilfe von Christian“ in DriverPilot ab dem Stand nach 0.3.4.
 
 Inhalt:
@@ -95,19 +95,27 @@ mit deinem Haken bereits an ChatGPT übermittelt wurde, holt das Löschen nicht 
 
 ### 3.1 Zugang
 
-Die Admin-Ansicht liegt unter https://driverpilot.dns-prod-2.local.cstrube.de. Sie ist nur aus
+Die Admin-Oberfläche liegt unter https://driverpilot.dns-prod-2.local.cstrube.de. Sie ist nur aus
 dem LAN oder dem Tailnet erreichbar, die Anmeldung läuft über Authentik (Gruppe
-`Homelab-Admins`). Aus dem Internet ist sie nicht erreichbar.
+`Homelab-Admins`). Aus dem Internet ist sie nicht erreichbar: der öffentliche Weg über die TrueNAS
+endet für `/admin` mit „Zugriff verweigert“.
 
-Das Menü hat die Seiten Fälle, Einladungen, Zugänge, Audit und KI (ChatGPT). Rechts oben stehen
-der angemeldete Benutzer, die Server-Zeit in UTC und der aktive Adapter.
+Die Seitenleiste hat die Seiten Fälle, Einladungen, Zugänge, KI (ChatGPT), Releases und Audit.
+Unten steht, wer angemeldet ist. Auf dem Handy klappt das Menü über den Knopf links oben auf.
 
 ### 3.2 Einladung erzeugen und weitergeben
 
-Auf der Seite Einladungen trägst du eine Bezeichnung ein (zum Beispiel den Namen des Freundes),
-die Gültigkeit in Tagen und die Anzahl der Einlösungen, dann „Erzeugen“. Der Code erscheint
-genau einmal. Gib ihn zusammen mit der Serveradresse über einen sicheren Kanal weiter (Signal,
-iMessage, persönlich), nicht über GitHub-Issues und nicht per E-Mail an Listen.
+Auf der Seite Einladungen trägst du optional einen Vornamen für die Begrüßung ein, dazu eine
+Bezeichnung für dich, die Gültigkeit in Tagen und die Anzahl der Einlösungen, dann
+„Einladungslink erzeugen“. Du bekommst einen Link wie
+`https://driverpilot.cstrube.de/einladung#c=…&n=Max` und eine fertige Nachricht zum Kopieren
+oder Teilen. Den Link schickst du deinem Freund über einen privaten Kanal (Signal, iMessage,
+persönlich), nicht über GitHub-Issues und nicht per E-Mail an Listen. Er erscheint genau einmal.
+
+Die Einladungsseite begrüßt den Freund und führt ihn in drei Schritten durch Download,
+Installation und Koppeln; Serveradresse und Code kann er dort mit einem Klick kopieren. Code und
+Name stehen im Teil nach `#`, den der Browser nie an einen Server schickt. Nach dem Öffnen
+entfernt die Seite ihn aus Adresszeile und Verlauf.
 
 Pro Freund reicht ein Code mit einer Einlösung und 1 bis 7 Tagen Gültigkeit. Für eine Gruppe
 passt ein Code mit zum Beispiel 10 Einlösungen und 30 Tagen. Codes, die niemand mehr braucht,
@@ -119,8 +127,9 @@ Clients, auch für bestehende Fälle.
 
 ### 3.3 Fallübersicht
 
-Die Seite Fälle zeigt Kennzahlen (offen, warten auf Prüfung, fehlgeschlagen, neue Fälle heute,
-Zugänge, Aufträge, KI-Aufrufe) und darunter alle nicht abgelaufenen Fälle mit ihrem Zustand.
+Die Seite Fälle zeigt Kennzahlen (wartet auf dich, KI läuft oder wartet, fehlgeschlagen, neue
+Fälle heute, aktive Zugänge, KI-Aufrufe) und darunter die offenen oder alle nicht abgelaufenen
+Fälle mit ihrem Zustand. Sie aktualisiert sich alle 15 Sekunden von selbst.
 
 | Zustand | Bedeutung | Was du tust |
 |---|---|---|
@@ -132,12 +141,13 @@ Zugänge, Aufträge, KI-Aufrufe) und darunter alle nicht abgelaufenen Fälle mit
 
 ### 3.4 Fallseite
 
-Oben stehen IDs, Eingang, Ablauf, Zugang, App-Version, ob externe KI erlaubt ist, die Zahl der
-Versuche und die Version des Falls. Darunter folgt der Bericht in lesbarer Form: Symptom und
+Oben stehen Kategorie, Zustand, Zugang, Eingang, Ablauf und die Zahl der KI-Versuche. Läuft
+gerade ein KI-Aufruf, zeigt die Seite das an und aktualisiert sich alle 5 Sekunden. Darunter
+folgt der Bericht in lesbarer Form: Symptom und
 Freitext, Hardware, Geräte (Modellkennung mit Bus, Vendor und Product, Treiberversion,
 Problemcode), Befunde (Quelle, Ereignis-ID, Anzahl, Zeitraum, Stufe, Gerät) und der
 Erfassungsstatus. Alles außer `complete` im Erfassungsstatus ist eine Lücke, kein unauffälliger
-Befund. Ganz unten lässt sich der rohe JSON-Bericht ausklappen.
+Befund. Auf breiten Bildschirmen steht der Entwurf rechts daneben.
 
 Die Aktionen oben auf der Seite:
 
@@ -149,9 +159,19 @@ Die Aktionen oben auf der Seite:
 
 ### 3.5 Entwurf schreiben oder prüfen
 
-Der Bereich Entwurf zeigt entweder den KI-Entwurf (mit oranger Warnung, dass er ungeprüft
-ist), deinen zuletzt gespeicherten Entwurf oder eine leere Vorlage. Bearbeitet wird im
-JSON-Feld. So sieht ein Entwurf aus:
+Der Bereich Entwurf zeigt entweder den KI-Entwurf (violett markiert: ungeprüft), deinen zuletzt
+gespeicherten Entwurf, nach einer Freigabe die letzte Revision als Ausgangspunkt oder eine leere
+Vorlage. Der Editor hat drei Ansichten:
+
+- **Formular:** Zusammenfassung, Fakten mit Belegen (Befund, Gerät oder Berichtsfeld aus
+  Auswahllisten), Vermutungen mit Bezug auf Fakten, nächste Schritte mit Risiko und Rechten,
+  Rückfragen, Hinweise und Quellen. Einträge fügst du mit „+“ hinzu und mit dem Papierkorb
+  entfernst du sie.
+- **JSON:** derselbe Entwurf als Text, für schnelles Kopieren oder größere Umbauten.
+- **Vorschau:** so, wie der Freund das Ergebnis in DriverPilot sieht.
+
+„Prüfen“ validiert ohne zu speichern. „Entwurf speichern“ prüft und speichert. Als JSON sieht
+ein Entwurf so aus:
 
 ```json
 {
@@ -189,15 +209,15 @@ Beim Speichern prüft der Server diese Regeln:
 - Längen: summary 2000 Zeichen, Texte 1000, Anleitung 4000, Titel 200. Das Gesamtergebnis
   darf 64 KiB nicht überschreiten.
 
-„Entwurf speichern und prüfen“ validiert und listet Verstöße auf. Einträge mit dem Zusatz
-„(Hinweis, keine Sperre)“ sind nur Warnungen, etwa bei Textmarkern. Das Kästchen „beruht auf
-einem KI-Entwurf“ steuert die Herkunftsangabe im Ergebnis (`human` oder
-`ai_assisted_human_reviewed`). Bei einem bearbeiteten KI-Entwurf lässt du es angehakt.
+Verstöße erscheinen rot unter dem Editor. Einträge mit dem Zusatz „(Hinweis, keine Sperre)“
+sind nur Warnungen, etwa bei Textmarkern. Das Kästchen „beruht auf KI-Entwurf“ steuert die
+Herkunftsangabe im Ergebnis (`human` oder `ai_assisted_human_reviewed`). Bei einem bearbeiteten
+KI-Entwurf lässt du es angehakt.
 
 ### 3.6 Freigeben
 
-Der Knopf „Revision N freigeben“ erscheint, sobald ein gültiger Entwurf gespeichert ist und der
-Fall in `awaiting_review` oder `released` steht. Nach der Bestätigung ist die Revision
+Der Knopf „Revision N freigeben“ wird aktiv, sobald ein gültiger Entwurf gespeichert und nicht
+mehr verändert ist und der Fall in `awaiting_review` oder `released` steht. Nach der Bestätigung ist die Revision
 unveränderlich und für den Freund sichtbar. Sie ist an Fall-ID, Scan-ID und den Hash des
 Berichts gebunden; der Client prüft das.
 
@@ -261,13 +281,13 @@ Danach ist ein Neustart nötig.
 
 | Was | Wo |
 |---|---|
-| Server | `rpi4-400` (10.0.30.3), Docker Compose in `~/driverpilot-server`, Clone von GitHub mit read-only Deploy-Key |
+| Server | `rpi4-400` (10.0.30.3), Docker Compose in `~/driverpilot-server` mit zwei Containern: `driverpilot-server` (Python) und `driverpilot-web` (SvelteKit); Clone von GitHub mit read-only Deploy-Key |
 | Daten | `~/driverpilot-server/data/` mit SQLite `driverpilot.sqlite3`, `server.secret` und `codex-auth.json`; uid 10001, Rechte 0700; nicht in Backups |
 | Downloads | `~/driverpilot-server/downloads/` (10001:1000, 775), im Container `/downloads`, öffentlich unter `/downloads/`; gefüllt vom Release-Sync |
 | Konfiguration | `~/driverpilot-server/.env`, Vorlage ist `.env.example` |
 | Öffentliche API | `https://driverpilot.cstrube.de/api/v1`. Der Weg: Cloudflare (proxied, `records.tf`), dann TrueNAS-Traefik mit `dynamic/driverpilot.yml` (`cloudflare-only`, CrowdSec, Rate-Limit), dann `10.0.30.3:8140` |
-| Öffentliche Seiten | `https://driverpilot.cstrube.de/` mit Anleitung, Datenschutzhinweis und Downloads, gleicher Weg wie die API |
-| Admin | `https://driverpilot.dns-prod-2.local.cstrube.de`. Der Weg: Pi-Traefik mit `~/traefik/data/config.yml` (`agent-secured` und `sso`), dann `10.0.30.3:8141` |
+| Öffentliche Seiten | `https://driverpilot.cstrube.de/` mit Anleitung, Datenschutzhinweis, Downloads und Einladungsseite; TrueNAS-Traefik leitet `/api/`, `/hooks/`, `/downloads/<datei>` und `/readyz` an `:8140` (Python), alles andere an `:8142` (SvelteKit) |
+| Admin | `https://driverpilot.dns-prod-2.local.cstrube.de`. Der Weg: Pi-Traefik mit `~/traefik/data/config.yml` (`agent-secured` und `sso`), dann `10.0.30.3:8142` (SvelteKit), von dort intern an die Admin-API `server:8141` |
 | Repo und Logbuch | `github.com/Madchristian/DriverPilot-Server`, dort `STATUS.md`; der Auftrag ist DriverPilot Issue #19 |
 
 ### 5.2 Tägliche Handgriffe
@@ -278,10 +298,12 @@ cd ~/driverpilot-server
 docker compose ps                        # healthy?
 docker compose logs --since 1h           # keine Bodies/Tokens im Log
 curl -s http://127.0.0.1:8140/readyz     # "ready" = DB schreibbar
+curl -s http://127.0.0.1:8142/healthz    # "ok" = Oberfläche läuft
 curl -s http://127.0.0.1:8140/api/v1/capabilities | head -c 300
 ```
 
-Von außen prüfst du mit `curl -s https://driverpilot.cstrube.de/api/v1/capabilities`. Direkt am
+Von außen prüfst du mit `curl -s https://driverpilot.cstrube.de/api/v1/capabilities` und im Browser
+mit https://driverpilot.cstrube.de/. Direkt am
 Origin ohne Cloudflare muss 403 kommen, das ist der Origin-Lock.
 
 ### 5.3 Update und Rollback
@@ -324,9 +346,9 @@ und kopiert sie per scp in den Download-Ordner.
 | Variable | Bedeutung |
 |---|---|
 | `DP_API_TRUSTED_PROXIES` | Proxy, dessen `CF-Connecting-IP` für Rate-Limits zählt (`10.0.30.20`) |
-| `DP_ADMIN_TRUSTED_PROXIES` | Proxys, deren Authentik-Header gelten (`10.0.30.5,10.0.20.162`; die Pi erreicht die .3 über VLAN20) |
-| `DP_ADMIN_GROUP` | Authentik-Gruppe (`Homelab-Admins`) |
-| `DP_PUBLIC_BASE_URL` | wird mit dem Einladungscode angezeigt |
+| `DP_ADMIN_API_TOKEN` | gemeinsames Token zwischen Oberfläche und interner Admin-API |
+| `ADMIN_HOSTS`, `ADMIN_TRUSTED_PROXIES`, `ADMIN_GROUP` | Admin-Oberfläche: Hostname, Proxys mit gültigen Authentik-Headern (`10.0.30.5,10.0.20.162`; die Pi erreicht die .3 über VLAN20), Authentik-Gruppe |
+| `DP_PUBLIC_BASE_URL` | Basis der Einladungslinks und Serveradresse für die Clients |
 | `DP_PRIVACY_NOTICE_VERSION` und `DP_PRIVACY_NOTICE_FILE` | bei jeder Textänderung die Version anheben; alte Zustimmungen werden abgelehnt und DriverPilot holt eine neue |
 | `DP_DOWNLOADS_DIR` | Verzeichnis der Release-Dateien im Container (Default `/downloads`) |
 | `DP_CLIENT_REPO`, `DP_GITHUB_TOKEN`, `DP_GITHUB_WEBHOOK_SECRET`, `DP_RELEASE_SYNC_TOKEN`, `DP_RELEASES_KEEP` | Release-Sync: Client-Repo, GitHub-Token (Contents: read), Webhook-Secret, Bearer-Token für den Endpunkt, behaltene Versionen |
@@ -387,7 +409,9 @@ Alle Codes stehen in `contract/v1/errors.json`.
 
 | Symptom | Ursache | Abhilfe |
 |---|---|---|
-| Admin-Seite meldet „Zugriff verweigert“ trotz Authentik-Login | der Request kommt nicht von einem Proxy in `DP_ADMIN_TRUSTED_PROXIES`, oder die Gruppe fehlt | `.env` prüfen; Routing der Pi mit `ip route get 10.0.30.3` auf dns-prod-2 |
+| Admin-Seite meldet „Zugriff verweigert“ trotz Authentik-Login | der Request kommt nicht von einem Proxy in `ADMIN_TRUSTED_PROXIES`, oder die Gruppe fehlt | `.env` prüfen; Routing der Pi mit `ip route get 10.0.30.3` auf dns-prod-2 |
+| Admin-Seite meldet „Admin-API lehnt ab (Token prüfen)“ | `DP_ADMIN_API_TOKEN` fehlt oder unterscheidet sich zwischen den Containern | `.env` prüfen, `docker compose up -d` |
+| Formular meldet „Cross-site POST form submissions are forbidden“ | Proxy schickt keine `X-Forwarded-Proto`/`X-Forwarded-Host` | Traefik-Router prüfen; lokal `ORIGIN` setzen |
 | `external_ai_offered=false` trotz Adapter `codex` | nicht angemeldet oder Token-Refresh gescheitert | Seite „KI (ChatGPT)“: Status und letzter Fehler, neu anmelden |
 | Fälle bleiben in `queued` | kein Login, oder der Worker steht | Login prüfen, `docker compose logs`, sonst „Manuell übernehmen“ |
 | `analysis_failed` mit `outcome_unknown` | Timeout (300 s) oder Neustart während des Aufrufs | „KI-Neuversuch“ oder manuell |
