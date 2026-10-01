@@ -263,7 +263,7 @@ Danach ist ein Neustart nötig.
 |---|---|
 | Server | `rpi4-400` (10.0.30.3), Docker Compose in `~/driverpilot-server`, Clone von GitHub mit read-only Deploy-Key |
 | Daten | `~/driverpilot-server/data/` mit SQLite `driverpilot.sqlite3`, `server.secret` und `codex-auth.json`; uid 10001, Rechte 0700; nicht in Backups |
-| Downloads | `~/driverpilot-server/downloads/`, wird read-only als `/downloads` in den Container gereicht und unter `/downloads/` veröffentlicht |
+| Downloads | `~/driverpilot-server/downloads/` (10001:1000, 775), im Container `/downloads`, öffentlich unter `/downloads/`; gefüllt vom Release-Sync |
 | Konfiguration | `~/driverpilot-server/.env`, Vorlage ist `.env.example` |
 | Öffentliche API | `https://driverpilot.cstrube.de/api/v1`. Der Weg: Cloudflare (proxied, `records.tf`), dann TrueNAS-Traefik mit `dynamic/driverpilot.yml` (`cloudflare-only`, CrowdSec, Rate-Limit), dann `10.0.30.3:8140` |
 | Öffentliche Seiten | `https://driverpilot.cstrube.de/` mit Anleitung, Datenschutzhinweis und Downloads, gleicher Weg wie die API |
@@ -299,11 +299,25 @@ KI-Aufrufe markiert der Server beim Start als `analysis_failed` mit Grund `outco
 
 ### 5.4 Release-Dateien veröffentlichen
 
-`deploy/publish-release.sh v0.3.4` lädt die Dateien eines DriverPilot-Releases mit `gh`
-herunter, prüft sie gegen `SHA256SUMS.txt` und kopiert sie nach
-`rpi4-400:~/driverpilot-server/downloads/`. Das Skript läuft auf `dns-prod-2`, weil dort `gh`
-mit Zugriff auf das private Repo eingerichtet ist. Die Seite `/downloads/` zeigt danach die
-neuen Dateien mit Größe und SHA-256; der Container muss dafür nicht neu starten.
+Neue Releases kommen von selbst: GitHub ruft beim Veröffentlichen eines Releases im
+DriverPilot-Repo den Webhook `POST /hooks/github` auf (signiert mit
+`DP_GITHUB_WEBHOOK_SECRET`). Der Server wartet, bis `SHA256SUMS.txt` und alle darin
+gelisteten Dateien am Release hängen, lädt sie mit `DP_GITHUB_TOKEN` (fine-grained PAT,
+„Contents: Read-only“ auf dem Client-Repo), prüft jede Datei gegen die Prüfsumme und tauscht
+erst dann in `/downloads`. Von exe und zip bleiben die `DP_RELEASES_KEEP` neuesten Versionen,
+`DriverPilot.cer`, `SHA256SUMS.txt` und `ZERTIFIKAT-ANLEITUNG.txt` werden überschrieben.
+
+Von Hand geht es auf der Admin-Seite Releases („Release jetzt holen“, Tag oder leer für das
+neueste) oder per Endpunkt, zum Beispiel aus der CI:
+
+```bash
+curl -X POST -H "Authorization: Bearer $DP_RELEASE_SYNC_TOKEN" -H "Content-Type: application/json" \
+  --data '{"tag":"v0.4.0"}' https://driverpilot.cstrube.de/hooks/sync-release
+```
+
+Die Seite Releases zeigt den letzten Lauf mit Meldung. Als Rückfallweg bleibt
+`deploy/publish-release.sh v0.3.4` auf `dns-prod-2`: es lädt die Dateien mit `gh`, prüft sie
+und kopiert sie per scp in den Download-Ordner.
 
 ### 5.5 Einstellungen in `.env`
 
@@ -315,6 +329,7 @@ neuen Dateien mit Größe und SHA-256; der Container muss dafür nicht neu start
 | `DP_PUBLIC_BASE_URL` | wird mit dem Einladungscode angezeigt |
 | `DP_PRIVACY_NOTICE_VERSION` und `DP_PRIVACY_NOTICE_FILE` | bei jeder Textänderung die Version anheben; alte Zustimmungen werden abgelehnt und DriverPilot holt eine neue |
 | `DP_DOWNLOADS_DIR` | Verzeichnis der Release-Dateien im Container (Default `/downloads`) |
+| `DP_CLIENT_REPO`, `DP_GITHUB_TOKEN`, `DP_GITHUB_WEBHOOK_SECRET`, `DP_RELEASE_SYNC_TOKEN`, `DP_RELEASES_KEEP` | Release-Sync: Client-Repo, GitHub-Token (Contents: read), Webhook-Secret, Bearer-Token für den Endpunkt, behaltene Versionen |
 | `DP_AI_PROVIDER` | `none`, `test` oder `codex` |
 | `DP_CODEX_MODEL`, `DP_CODEX_REASONING` | Modellwahl |
 | `DP_AI_DAILY_CALLS`, `DP_AI_TIMEOUT_SECONDS` | Budget und Timeout |

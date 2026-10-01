@@ -97,8 +97,11 @@ Einladungen; das Audit nur Metadaten (Akteur, Operation, Fall-ID, Ergebnis).
 
 Auf dem API-Host liegen eine Anleitung für Freunde (`docs/public/anleitung.md`, als HTML
 gerendert), der Datenschutzhinweis und eine Downloadseite für die signierten Release-Dateien
-des Windows-Clients. Die Dateien liegen in `./downloads` (read-only im Container) und kommen
-per `deploy/publish-release.sh <tag>` von GitHub dorthin; die Seite zeigt Größe und SHA-256.
+des Windows-Clients. Die Dateien liegen in `./downloads` und kommen automatisch dorthin: GitHub
+ruft beim Veröffentlichen eines Releases `POST /hooks/github` (HMAC-signiert), der Server wartet
+auf `SHA256SUMS.txt` plus alle gelisteten Dateien, prüft die Prüfsummen und tauscht atomar ein
+(`driverpilot_server/releases.py`). Alternativ `POST /hooks/sync-release` mit Bearer-Token, die
+Admin-Seite „Releases“ oder `deploy/publish-release.sh <tag>`. Die Seite zeigt Größe und SHA-256.
 Erlaubt sind nur Dateinamen aus `[A-Za-z0-9._-]` mit den Endungen exe, zip, cer, txt, sha256,
 pdf, md. Das vollständige Handbuch (`docs/HANDBUCH.md`) bleibt im Repo, weil es interne
 Hostnamen enthält.

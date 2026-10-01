@@ -18,6 +18,7 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 ## Etappen
 
 - [x] Handbuch für Freunde, Christian und Betrieb: `docs/HANDBUCH.md` (nach Humanizer-Regeln überarbeitet)
+- [x] Release-Sync: GitHub-Webhook (Ereignis release) + `POST /hooks/sync-release` + Admin-Seite Releases; gegen echtes Release v0.3.4 getestet (10 s). **Offen: fine-grained PAT (Contents: Read-only, Repo DriverPilot) als `DP_GITHUB_TOKEN` in die Pi-.env**, bis dahin meldet die Seite „fehlt“
 - [x] Öffentliche Seiten auf `https://driverpilot.cstrube.de/`: Anleitung für Freunde (`docs/public/anleitung.md`), Datenschutzhinweis, Downloads der Release-Dateien (`deploy/publish-release.sh`); Release v0.3.4 liegt bereit, enthält „Hilfe von Christian“ noch nicht
 
 - [x] Vertrag vendoren, Validator grün (`11 schemas, 27 error codes, 22 valid, 38 invalid`)
