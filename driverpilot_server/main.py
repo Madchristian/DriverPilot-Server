@@ -34,6 +34,7 @@ def build(settings: Settings | None = None) -> tuple[Service, Worker]:
 
 async def serve() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # keine Request-Zeilen des Modellaufrufs im Log
     settings = Settings()
     service, worker = build(settings)
     service.expire_stale_leases()
