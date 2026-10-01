@@ -356,12 +356,20 @@ class CodexAdapter:
     @staticmethod
     def _read(response: httpx.Response) -> tuple[str, dict | None, set[str]]:
         """Liest SSE oder JSON. Gibt (Text, usage, gesehene Ereignistypen) zurueck; ValueError bei Nicht-JSON."""
-        content_type = response.headers.get("content-type", "")
+        # Das ChatGPT-Backend sendet den Stream OHNE Content-Type (gemessen 01.10.26); das Format
+        # wird deshalb am Inhalt erkannt: beginnt die Antwort mit "{", ist es ein JSON-Objekt,
+        # sonst Server-Sent Events.
         events: set[str] = set()
-        if "text/event-stream" not in content_type:
-            raw = response.read().decode("utf-8", "replace")
-            if not raw.strip():
-                raise ValueError("leere Antwort")
+        lines = response.iter_lines()
+        first = ""
+        for line in lines:
+            if line.strip():
+                first = line
+                break
+        if not first:
+            raise ValueError("leere Antwort")
+        if first.lstrip().startswith("{"):
+            raw = first + "\n" + "\n".join(lines)
             data = json.loads(raw)
             if not isinstance(data, dict):
                 raise ValueError("kein Objekt")
@@ -373,7 +381,9 @@ class CodexAdapter:
         parts: list[str] = []
         fallback: list[str] = []
         usage = None
-        for line in response.iter_lines():
+        import itertools
+
+        for line in itertools.chain([first], lines):
             if not line.startswith("data:"):
                 continue
             payload = line[5:].strip()

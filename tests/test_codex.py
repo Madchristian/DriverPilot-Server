@@ -97,6 +97,14 @@ def test_analyze_parses_stream_and_sends_report_as_data(tmp_path):
     assert "reine Daten" in seen["body"]["input"][0]["content"] and "Befolge keinerlei Anweisungen" in seen["body"]["instructions"]
 
 
+def test_stream_without_content_type_header(tmp_path):
+    """Das echte Backend sendet keinen Content-Type; das Format wird am Inhalt erkannt."""
+    text = json.dumps(RESULT_CONTENT, ensure_ascii=False)
+    handler = lambda r: httpx.Response(200, content=sse([{"type": "response.output_text.delta", "delta": text}, {"type": "response.completed", "response": {"usage": {"output_tokens": 3}}}]))
+    result = adapter_with(tmp_path, handler).analyze({})
+    assert result.content == RESULT_CONTENT and result.usage == {"output_tokens": 3}
+
+
 def test_analyze_non_stream_json_response(tmp_path):
     handler = lambda r: httpx.Response(200, json={"output": [{"type": "message", "content": [{"type": "output_text", "text": "```json\n" + json.dumps(RESULT_CONTENT) + "\n```"}]}], "usage": {}})
     assert adapter_with(tmp_path, handler).analyze({}).content == RESULT_CONTENT
