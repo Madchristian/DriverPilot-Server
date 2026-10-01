@@ -17,7 +17,7 @@ RUN mkdir -p /downloads
 
 RUN mkdir -p /data && chown driverpilot:driverpilot /data
 USER driverpilot
-ENV DP_DATA_DIR=/data
+ENV DP_DATA_DIR=/data DP_DOWNLOADS_DIR=/downloads
 EXPOSE 8140 8141
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
