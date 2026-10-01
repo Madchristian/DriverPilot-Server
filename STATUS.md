@@ -17,6 +17,8 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 
 ## Etappen
 
+- [x] Handbuch für Freunde, Christian und Betrieb: `docs/HANDBUCH.md`
+
 - [x] Vertrag vendoren, Validator grün (`11 schemas, 27 error codes, 22 valid, 38 invalid`)
 - [x] Server implementiert (API, Admin, Worker, Bereinigung), 94 Tests grün (inkl. Codex-Adapter gegen nachgebildetes Backend); Dependabot-Meldungen behoben (starlette 1.7, python-multipart 0.0.32, pytest 9.1)
 - [x] Repo auf GitHub: https://github.com/Madchristian/DriverPilot-Server (Deploy-Key read-only fuer rpi4-400)

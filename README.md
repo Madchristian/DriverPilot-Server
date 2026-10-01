@@ -2,7 +2,7 @@
 
 Serverseite zu [DriverPilot](https://github.com/Madchristian/DriverPilot) „Hilfe von Christian“.
 Fachliche Übergabe und Abnahme: [DriverPilot Issue #19](https://github.com/Madchristian/DriverPilot/issues/19).
-Aktueller Stand und offene Punkte: [STATUS.md](STATUS.md).
+Aktueller Stand und offene Punkte: [STATUS.md](STATUS.md). Bedienung und Betrieb: [docs/HANDBUCH.md](docs/HANDBUCH.md).
 
 Der Server nimmt Diagnoseberichte nach dem Vertrag `contract/v1` (byte-exakte Kopie aus dem
 DriverPilot-Repo, Quell-Commit in `contract/CONTRACT_SOURCE`) entgegen, hält sie 7 Tage, und
