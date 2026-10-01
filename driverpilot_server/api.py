@@ -8,7 +8,9 @@ Es werden keine Bodies, Tokens oder Einladungen protokolliert.
 
 from __future__ import annotations
 
+import hmac
 import ipaddress
+import json
 import logging
 import re
 import uuid
@@ -22,6 +24,7 @@ from starlette.routing import Route
 from .contract import ERROR_MESSAGES, ContractError, is_uuid
 from .public import Public
 from .ratelimit import SlidingWindow
+from .releases import ReleaseSync, verify_github_signature
 from .service import Service
 
 log = logging.getLogger("driverpilot.api")
@@ -42,6 +45,9 @@ class Api:
         self.client_limiter = SlidingWindow(settings.client_requests_per_minute, 60)
         self.ip_limiter = SlidingWindow(settings.client_requests_per_minute * 2, 60)
         self.pairing_failures = SlidingWindow(settings.pairing_failures_per_ip, settings.pairing_failure_window_seconds)
+        self.releases = ReleaseSync(settings.client_repo, settings.github_token, settings.downloads_dir,
+                                    settings.releases_keep, audit=service.audit)
+        service.releases = self.releases
 
     # ------------------------------------------------------------------ Hilfen
 
@@ -180,6 +186,65 @@ class Api:
         key = self.idempotency_key(request)
         return self.json(self.service.create_feedback(client, case_id, key, body), status=201)
 
+    # ------------------------------------------------------------------ Release-Sync
+
+    async def _read_small_body(self, request: Request, limit: int = 1 << 20) -> bytes:
+        chunks, total = [], 0
+        async for chunk in request.stream():
+            total += len(chunk)
+            if total > limit:
+                raise ApiError("payload_too_large")
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+    async def github_webhook(self, request: Request) -> Response:
+        """GitHub-Webhook (Ereignis release). Nur mit gueltiger HMAC-Signatur."""
+        settings = self.service.settings
+        if not settings.github_webhook_secret:
+            return self.error("not_found")
+        self.limit_ip(request)
+        body = await self._read_small_body(request)
+        if not verify_github_signature(settings.github_webhook_secret, body, request.headers.get("x-hub-signature-256")):
+            log.warning("Webhook mit ungueltiger Signatur abgewiesen")
+            return JSONResponse({"accepted": False, "reason": "signature"}, status_code=401)
+        event = request.headers.get("x-github-event", "")
+        if event == "ping":
+            return JSONResponse({"accepted": True, "event": "ping"})
+        if event != "release":
+            return JSONResponse({"accepted": False, "reason": "event"})
+        try:
+            payload = json.loads(body.decode("utf-8"))
+        except ValueError:
+            return JSONResponse({"accepted": False, "reason": "json"}, status_code=400)
+        action = payload.get("action")
+        repo = (payload.get("repository") or {}).get("full_name", "")
+        tag = (payload.get("release") or {}).get("tag_name")
+        if repo.lower() != settings.client_repo.lower() or action not in ("published", "released") or not tag:
+            return JSONResponse({"accepted": False, "reason": "ignored", "action": action})
+        started = self.releases.trigger(tag, source="github-webhook")
+        return JSONResponse({"accepted": True, "tag": tag, "started": started}, status_code=202)
+
+    async def sync_release(self, request: Request) -> Response:
+        """POST /hooks/sync-release mit Bearer-Token: {"tag": "v0.4.0"} oder leer fuer das neueste Release."""
+        settings = self.service.settings
+        if not settings.release_sync_token:
+            return self.error("not_found")
+        self.limit_ip(request)
+        scheme, _, token = request.headers.get("authorization", "").partition(" ")
+        if scheme.lower() != "bearer" or not hmac.compare_digest(token.strip(), settings.release_sync_token):
+            return JSONResponse({"accepted": False, "reason": "token"}, status_code=401, headers={"WWW-Authenticate": "Bearer"})
+        body = await self._read_small_body(request)
+        tag = None
+        if body.strip():
+            try:
+                tag = (json.loads(body.decode("utf-8")) or {}).get("tag")
+            except ValueError:
+                return JSONResponse({"accepted": False, "reason": "json"}, status_code=400)
+            if tag is not None and not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", str(tag)):
+                return JSONResponse({"accepted": False, "reason": "tag"}, status_code=400)
+        started = self.releases.trigger(tag, source="sync-endpoint")
+        return JSONResponse({"accepted": True, "tag": tag or "latest", "started": started}, status_code=202)
+
     async def healthz(self, request: Request) -> Response:
         return Response("ok", media_type="text/plain")
 
@@ -226,6 +291,8 @@ def create_api_app(service: Service) -> Starlette:
         Route("/downloads/", public.downloads, methods=["GET"]),
         Route("/downloads/{name}", public.download_file, methods=["GET"]),
         Route("/robots.txt", public.robots, methods=["GET"]),
+        Route("/hooks/github", api.github_webhook, methods=["POST"]),
+        Route("/hooks/sync-release", api.sync_release, methods=["POST"]),
         Route(f"{prefix}/capabilities", api.capabilities, methods=["GET"]),
         Route(f"{prefix}/pairings/redeem", api.redeem, methods=["POST"]),
         Route(f"{prefix}/cases", api.create_case, methods=["POST"]),

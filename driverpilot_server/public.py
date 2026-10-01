@@ -89,6 +89,7 @@ class Public:
                 cached = (stat.st_size, stat.st_mtime_ns, digest.hexdigest())
                 self._hash_cache[path.name] = cached
             entries.append({"name": path.name, "size": stat.st_size, "sha256": cached[2], "mtime": stat.st_mtime})
+        entries.sort(key=lambda e: (-e["mtime"], e["name"]))
         return entries
 
     @staticmethod

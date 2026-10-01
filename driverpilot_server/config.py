@@ -99,6 +99,13 @@ class Settings:
     public_base_url: str = field(default_factory=lambda: os.environ.get("DP_PUBLIC_BASE_URL", ""))
     # Release-Dateien des Windows-Clients fuer die oeffentliche Downloadseite (read-only Verzeichnis).
     downloads_dir: Path = field(default_factory=lambda: Path(os.environ.get("DP_DOWNLOADS_DIR", REPO_DIR / "downloads")))
+    # Release-Sync von GitHub: Repo des Windows-Clients, Token (Contents: read), Webhook-Secret,
+    # Bearer-Token fuer POST /hooks/sync-release. Leer = Funktion aus.
+    client_repo: str = field(default_factory=lambda: os.environ.get("DP_CLIENT_REPO", "Madchristian/DriverPilot"))
+    github_token: str = field(default_factory=lambda: os.environ.get("DP_GITHUB_TOKEN", ""))
+    github_webhook_secret: str = field(default_factory=lambda: os.environ.get("DP_GITHUB_WEBHOOK_SECRET", ""))
+    release_sync_token: str = field(default_factory=lambda: os.environ.get("DP_RELEASE_SYNC_TOKEN", ""))
+    releases_keep: int = field(default_factory=lambda: _env_int("DP_RELEASES_KEEP", 2))
 
     def __post_init__(self) -> None:
         if self.ai_provider not in ("none", "test", "codex"):
@@ -153,6 +160,8 @@ class Settings:
             "max_open_cases_global": self.max_open_cases_global,
             "privacy_notice_version": self.privacy_notice_version,
             "public_base_url": self.public_base_url,
+            "releases_keep": self.releases_keep,
+            "client_repo": self.client_repo,
         }
 
     def to_json(self) -> str:

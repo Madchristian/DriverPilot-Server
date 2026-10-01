@@ -263,6 +263,36 @@ class Admin:
         self.service.audit(user, f"codex.{action}", None, "ok")
         return self.redirect("/codex", message)
 
+    # ------------------------------------------------------------------ Releases (Downloads)
+
+    def _download_entries(self) -> list[dict]:
+        from .public import Public
+
+        return Public(self.settings, "")._entries()
+
+    async def releases(self, request: Request) -> Response:
+        self.identity(request)
+        sync = self.service.releases
+        return self.render(
+            request, "releases.html", files=self._download_entries(), sync=sync,
+            last=(sync.last if sync else {"state": "idle"}), configured=bool(sync and sync.configured()),
+            webhook_configured=bool(self.settings.github_webhook_secret), endpoint_configured=bool(self.settings.release_sync_token),
+        )
+
+    async def releases_fetch(self, request: Request) -> Response:
+        user = self.identity(request)
+        form = await self.check_csrf(request)
+        sync = self.service.releases
+        if sync is None or not sync.configured():
+            return self.redirect("/releases", "Fehler: Release-Sync ist nicht konfiguriert (DP_GITHUB_TOKEN).")
+        tag = (form.get("tag") or "").strip() or None
+        import re as _re
+
+        if tag and not _re.fullmatch(r"[A-Za-z0-9._-]{1,64}", tag):
+            return self.redirect("/releases", "Fehler: ungueltiger Tag.")
+        started = sync.trigger(tag, source=user)
+        return self.redirect("/releases", "Sync gestartet." if started else "Es laeuft bereits ein Sync.")
+
     async def healthz(self, request: Request) -> Response:
         return PlainTextResponse("ok")
 
@@ -289,6 +319,8 @@ def create_admin_app(service: Service) -> Starlette:
         Route("/clients", admin.clients, methods=["GET"]),
         Route("/clients/{client_id}/revoke", admin.client_revoke, methods=["POST"]),
         Route("/audit", admin.audit, methods=["GET"]),
+        Route("/releases", admin.releases, methods=["GET"]),
+        Route("/releases/fetch", admin.releases_fetch, methods=["POST"]),
         Route("/codex", admin.codex, methods=["GET"]),
         Route("/codex/{action}", admin.codex_action, methods=["POST"]),
         Route("/healthz", admin.healthz, methods=["GET"]),

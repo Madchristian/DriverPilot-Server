@@ -79,6 +79,7 @@ class Service:
         # Wird von main.build auf adapter.available gesetzt (z.B. Codex nur mit Login).
         self.ai_available = lambda: settings.ai_configured
         self.codex_auth = None  # CodexAuth, wenn Adapter codex aktiv ist (fuer die Adminseite)
+        self.releases = None  # ReleaseSync, gesetzt von der API-App (fuer die Adminseite)
 
     def external_ai_offered(self) -> bool:
         return bool(self.settings.ai_configured and self.ai_available())
