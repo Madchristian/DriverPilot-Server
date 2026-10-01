@@ -228,8 +228,11 @@ class ReleaseSync:
                 os.replace(incoming / name, self.downloads_dir / name)
         finally:
             shutil.rmtree(incoming, ignore_errors=True)
+        # Erst alte EXE/ZIP entfernen (sonst entstuende noch eine Setup-ZIP fuer die alte Version),
+        # dann verpacken, dann alte Setup-ZIPs entfernen.
         self._prune()
         wrapped = ensure_setup_zips(self.downloads_dir)
+        self._prune()
         log.info("Release %s uebernommen: %s", tag_name, ", ".join(sorted(wanted)))
         return sorted(wanted | set(wrapped))
 
