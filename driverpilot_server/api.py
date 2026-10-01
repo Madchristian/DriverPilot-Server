@@ -223,8 +223,11 @@ class Api:
         action = payload.get("action")
         repo = (payload.get("repository") or {}).get("full_name", "")
         tag = (payload.get("release") or {}).get("tag_name")
+        release = payload.get("release") or {}
         if repo.lower() != settings.client_repo.lower() or action not in ("published", "released") or not tag:
             return JSONResponse({"accepted": False, "reason": "ignored", "action": action})
+        if release.get("prerelease") or release.get("draft"):
+            return JSONResponse({"accepted": False, "reason": "prerelease", "tag": tag})
         started = self.releases.trigger(tag, source="github-webhook")
         return JSONResponse({"accepted": True, "tag": tag, "started": started}, status_code=202)
 

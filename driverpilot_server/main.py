@@ -14,7 +14,7 @@ from .config import Settings
 from .contract import Contract
 from .db import Database
 from .service import Service
-from .worker import Worker, build_adapter, cleanup_loop
+from .worker import Worker, build_adapter, cleanup_loop, reconcile_loop
 
 log = logging.getLogger("driverpilot")
 
@@ -68,6 +68,7 @@ async def serve() -> None:
         asyncio.create_task(admin_server.serve(), name="admin"),
         asyncio.create_task(worker.run(), name="worker"),
         asyncio.create_task(cleanup_loop(service, 3600, stop), name="cleanup"),
+        asyncio.create_task(reconcile_loop(service, settings.release_reconcile_minutes, stop), name="reconcile"),
     ]
     await asyncio.sleep(0.5)  # uvicorn installiert eigene Signalhandler; danach unsere darueberlegen.
     loop = asyncio.get_running_loop()

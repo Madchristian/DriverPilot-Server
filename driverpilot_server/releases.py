@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import logging
 import os
 import re
@@ -30,6 +31,7 @@ from .public import ALLOWED_SUFFIXES, FILENAME_RE
 
 log = logging.getLogger("driverpilot.releases")
 SUMS_NAME = "SHA256SUMS.txt"
+MANIFEST_NAME = ".manifest.json"
 VERSIONED_RE = re.compile(r"^DriverPilot-(\d+\.\d+\.\d+)-(.*\.(?:exe|zip))$")
 SETUP_EXE_RE = re.compile(r"^(DriverPilot-\d+\.\d+\.\d+-Setup-[A-Za-z0-9]+)\.exe$")
 SETUP_ZIP_EXTRAS = ("DriverPilot.cer", "ZERTIFIKAT-ANLEITUNG.txt")
@@ -63,6 +65,9 @@ def ensure_setup_zips(downloads_dir: Path) -> list[str]:
         os.replace(tmp, target)
         created.append(target.name)
         log.info("Setup-ZIP angelegt: %s", target.name)
+    manifest = read_manifest(downloads_dir)
+    if created and manifest is not None:
+        write_manifest(downloads_dir, manifest.get("tag", "?"), list(manifest["files"]) + created, manifest.get("source", "startup"))
     return created
 MAX_ASSET_BYTES = 600 * 1024 * 1024
 
@@ -73,6 +78,27 @@ class SyncError(Exception):
 
 def _now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def read_manifest(downloads_dir: Path) -> dict | None:
+    """Aktuelle Generation: {"tag", "files", "switched_at"} oder None (kein Manifest, flache Liste)."""
+    path = Path(downloads_dir) / MANIFEST_NAME
+    try:
+        data = json.loads(path.read_text("utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or not isinstance(data.get("files"), list):
+        return None
+    return data
+
+
+def write_manifest(downloads_dir: Path, tag: str, files: list[str], source: str) -> None:
+    """Atomar: Die sichtbare Dateimenge wechselt mit genau einem rename."""
+    path = Path(downloads_dir) / MANIFEST_NAME
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps({"tag": tag, "files": sorted(set(files)), "switched_at": _now(), "source": source}, indent=2), "utf-8")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, path)
 
 
 def verify_github_signature(secret: str, body: bytes, header: str | None) -> bool:
@@ -97,6 +123,7 @@ class ReleaseSync:
         self.api_base = api_base.rstrip("/")
         self.lock = threading.Lock()
         self.last: dict = {"state": "idle"}
+        self.last_reconcile: dict = {"state": "idle"}
 
     # ------------------------------------------------------------------ Ausloeser
 
@@ -204,6 +231,8 @@ class ReleaseSync:
         if not self.configured():
             raise SyncError("Release-Sync nicht konfiguriert (DP_CLIENT_REPO / DP_GITHUB_TOKEN)")
         release, sums = self._wait_for_assets(tag)
+        if release.get("prerelease"):
+            raise SyncError(f"Release {release.get('tag_name')} ist eine Vorabversion und wird nicht veroeffentlicht")
         tag_name = release.get("tag_name") or tag or "latest"
         self.last["tag"] = tag_name
         assets = {a["name"]: a for a in release.get("assets", [])}
@@ -218,23 +247,47 @@ class ReleaseSync:
             shutil.rmtree(incoming)
         incoming.mkdir()
         try:
+            # 1. Komplette Generation im Staging-Ordner: laden, pruefen, Setup-ZIP bauen.
             for name in sorted(wanted):
                 self.last["message"] = f"lade {name}"
                 digest = self._download_to(assets[name], incoming / name)
                 if name != SUMS_NAME and digest != sums[name]:
                     raise SyncError(f"Pruefsumme von {name} stimmt nicht mit {SUMS_NAME} ueberein")
-            for name in sorted(wanted):
+            generation = sorted(wanted | set(ensure_setup_zips(incoming)))
+            # 2. Dateien unter ihrem Namen bereitstellen (alte Generation bleibt bis zum Manifestwechsel sichtbar).
+            for name in generation:
                 os.chmod(incoming / name, 0o644)
                 os.replace(incoming / name, self.downloads_dir / name)
+            # 3. Ein rename schaltet die sichtbare Dateimenge um.
+            write_manifest(self.downloads_dir, tag_name, generation, self.last.get("source", "sync"))
         finally:
             shutil.rmtree(incoming, ignore_errors=True)
-        # Erst alte EXE/ZIP entfernen (sonst entstuende noch eine Setup-ZIP fuer die alte Version),
-        # dann verpacken, dann alte Setup-ZIPs entfernen.
         self._prune()
-        wrapped = ensure_setup_zips(self.downloads_dir)
-        self._prune()
-        log.info("Release %s uebernommen: %s", tag_name, ", ".join(sorted(wanted)))
-        return sorted(wanted | set(wrapped))
+        log.info("Release %s uebernommen: %s", tag_name, ", ".join(generation))
+        return generation
+
+    def current_tag(self) -> str | None:
+        manifest = read_manifest(self.downloads_dir)
+        return manifest.get("tag") if manifest else None
+
+    def reconcile(self) -> str:
+        """Regelmaessiger Abgleich: neuestes stabiles Release laut GitHub vs. aktuelle Generation."""
+        if not self.configured():
+            return "unconfigured"
+        try:
+            latest = self._release(None)  # /releases/latest: ohne Entwuerfe und Vorabversionen
+        except SyncError as exc:
+            self.last_reconcile = {"state": "failed", "at": _now(), "message": str(exc)[:200]}
+            return "failed"
+        tag = latest.get("tag_name")
+        current = self.current_tag()
+        self.last_reconcile = {"state": "done", "at": _now(), "latest": tag, "current": current}
+        if tag and tag != current:
+            started = self.trigger(tag, source="reconcile")
+            self.last_reconcile["message"] = f"{tag} fehlt, Sync {'gestartet' if started else 'laeuft bereits'}"
+            return "triggered" if started else "busy"
+        self.last_reconcile["message"] = "aktuell"
+        return "current"
 
     def _prune(self) -> None:
         """Behaelt je Dateiart (Setup-EXE, Setup-ZIP, portable ZIP) die neuesten `keep_versions` Versionen."""

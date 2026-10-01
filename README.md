@@ -123,8 +123,14 @@ Datenschutzhinweis (aus `privacy_notice.txt` über `/public-api/privacy`) und ei
 für die signierten Release-Dateien des Windows-Clients. Python liefert die Dateien selbst aus. Die Dateien liegen in `./downloads` und kommen automatisch dorthin: GitHub
 ruft beim Veröffentlichen eines Releases `POST /hooks/github` (HMAC-signiert), der Server wartet
 auf `SHA256SUMS.txt` plus alle gelisteten Dateien, prüft die Prüfsummen und tauscht atomar ein
-(`driverpilot_server/releases.py`). Alternativ `POST /hooks/sync-release` mit Bearer-Token, die
-Admin-Seite „Releases“ oder `deploy/publish-release.sh <tag>`. Die Seite zeigt Größe und SHA-256.
+(`driverpilot_server/releases.py`). Nur stabile Releases: Entwürfe und Vorabversionen weist der
+Webhook ab, und der Sync lehnt sie ab. Eine Generation wird komplett im Staging-Ordner geladen,
+geprüft und um die Setup-ZIP ergänzt; danach schaltet ein einziges `rename` der Datei
+`.manifest.json` die sichtbare Dateimenge um (`/public-api/downloads` listet nur Manifest-Dateien).
+Alle `DP_RELEASE_RECONCILE_MINUTES` (Default 360, zuerst 60 s nach dem Start) vergleicht der
+Server `/releases/latest` mit der aktuellen Generation und holt ein verpasstes Release nach.
+Alternativ `POST /hooks/sync-release` mit Bearer-Token, die Admin-Seite „Releases“ oder
+`deploy/publish-release.sh <tag>` (schreibt das Manifest selbst). Die Seite zeigt Größe und SHA-256.
 Erlaubt sind nur Dateinamen aus `[A-Za-z0-9._-]` mit den Endungen exe, zip, cer, txt, sha256,
 pdf, md. Das vollständige Handbuch (`docs/HANDBUCH.md`) bleibt im Repo, weil es interne
 Hostnamen enthält.

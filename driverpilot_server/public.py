@@ -65,11 +65,18 @@ class Public:
         self.downloads_dir = Path(settings.downloads_dir)
 
     def entries_json(self) -> list[dict]:
+        """Dateien der aktuellen Generation (Manifest). Ohne Manifest: alle erlaubten Dateien im Ordner."""
+        from .releases import read_manifest
+
         entries = []
         if not self.downloads_dir.is_dir():
             return entries
+        manifest = read_manifest(self.downloads_dir)
+        allowed_names = set(manifest["files"]) if manifest else None
         for path in self.downloads_dir.iterdir():
             if not path.is_file() or not FILENAME_RE.match(path.name) or path.suffix.lower() not in ALLOWED_SUFFIXES:
+                continue
+            if allowed_names is not None and path.name not in allowed_names:
                 continue
             stat = path.stat()
             key = str(path)

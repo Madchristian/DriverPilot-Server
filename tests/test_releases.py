@@ -19,8 +19,9 @@ REPO = "Madchristian/DriverPilot"
 class FakeGitHub:
     """Release mit Dateien; `uploaded` steuert, welche Dateien schon am Release haengen."""
 
-    def __init__(self, tag: str, files: dict[str, bytes], sums_override: str | None = None):
+    def __init__(self, tag: str, files: dict[str, bytes], sums_override: str | None = None, prerelease: bool = False):
         self.tag = tag
+        self.prerelease = prerelease
         self.files = dict(files)
         sums = "\n".join(f"{hashlib.sha256(data).hexdigest()}  {name}" for name, data in files.items()) + "\n"
         self.files["SHA256SUMS.txt"] = (sums_override or sums).encode()
@@ -34,7 +35,9 @@ class FakeGitHub:
             return httpx.Response(401)
         if path in (f"/repos/{REPO}/releases/tags/{self.tag}", f"/repos/{REPO}/releases/latest"):
             assets = [{"name": n, "url": f"https://api.test/assets/{n}", "size": len(self.files[n]), "state": "uploaded"} for n in sorted(self.uploaded)]
-            return httpx.Response(200, json={"tag_name": self.tag, "draft": False, "assets": assets})
+            if path.endswith("/latest") and self.prerelease:
+                return httpx.Response(404)
+            return httpx.Response(200, json={"tag_name": self.tag, "draft": False, "prerelease": self.prerelease, "assets": assets})
         if path.startswith("/assets/"):
             name = path.split("/")[-1]
             if name in self.uploaded:
@@ -77,9 +80,52 @@ def test_setup_zip_is_created_and_pruned_per_kind(tmp_path):
     with zipfile.ZipFile(dl / "DriverPilot-0.4.0-Setup-x64.zip") as archive:
         assert sorted(archive.namelist()) == ["DriverPilot-0.4.0-Setup-x64.exe", "DriverPilot.cer", "ZERTIFIKAT-ANLEITUNG.txt"]
         assert archive.read("DriverPilot-0.4.0-Setup-x64.exe") == b"EXE4"
-    remaining = sorted(p.name for p in dl.iterdir())
+    remaining = sorted(p.name for p in dl.iterdir() if not p.name.startswith("."))
     assert remaining == ["DriverPilot-0.4.0-Setup-x64.exe", "DriverPilot-0.4.0-Setup-x64.zip", "DriverPilot-0.4.0-win-x64.zip",
                          "DriverPilot.cer", "SHA256SUMS.txt", "ZERTIFIKAT-ANLEITUNG.txt"]
+
+
+def test_manifest_switches_generation_and_hides_leftovers(tmp_path):
+    from driverpilot_server.releases import read_manifest
+
+    fake = FakeGitHub("v0.4.0", {"DriverPilot-0.4.0-Setup-x64.exe": b"EXE4", "DriverPilot.cer": b"CER"})
+    sync = make_sync(tmp_path, fake, keep_versions=5)
+    dl = tmp_path / "dl"
+    dl.mkdir()
+    (dl / "DriverPilot-0.3.4-win-x64.zip").write_bytes(b"old")  # bleibt liegen (keep=5), aber nicht sichtbar
+    sync.run("v0.4.0")
+    manifest = read_manifest(dl)
+    assert manifest["tag"] == "v0.4.0" and manifest["source"] == "sync"
+    assert manifest["files"] == ["DriverPilot-0.4.0-Setup-x64.exe", "DriverPilot-0.4.0-Setup-x64.zip", "DriverPilot.cer", "SHA256SUMS.txt"]
+    assert sync.current_tag() == "v0.4.0"
+
+
+def test_prerelease_is_refused_by_sync_and_webhook(tmp_path, contract):
+    fake = FakeGitHub("v0.5.0-rc1", {"DriverPilot-0.5.0-win-x64.zip": b"RC"}, prerelease=True)
+    with pytest.raises(SyncError, match="Vorabversion"):
+        make_sync(tmp_path, fake).run("v0.5.0-rc1")
+    assert not (tmp_path / "dl" / ".manifest.json").exists()
+    h = Harness(tmp_path, contract, DP_GITHUB_WEBHOOK_SECRET="hook-secret", DP_GITHUB_TOKEN="SYNTHETIC-token")
+    try:
+        triggered = []
+        h.service.releases.trigger = lambda tag, source: triggered.append(tag) or True
+        body, headers = signed("hook-secret", {"action": "published", "repository": {"full_name": REPO}, "release": {"tag_name": "v0.5.0-rc1", "prerelease": True}}, "release")
+        assert h.api.post("/hooks/github", content=body, headers=headers).json()["reason"] == "prerelease"
+        assert triggered == []
+    finally:
+        h.close()
+
+
+def test_reconcile_triggers_only_when_latest_differs(tmp_path):
+    fake = FakeGitHub("v0.4.1", {"DriverPilot-0.4.1-win-x64.zip": b"Z"})
+    sync = make_sync(tmp_path, fake)
+    triggered = []
+    sync.trigger = lambda tag, source: triggered.append((tag, source)) or True
+    assert sync.reconcile() == "triggered" and triggered == [("v0.4.1", "reconcile")]
+    sync.run("v0.4.1")  # Generation jetzt aktuell
+    assert sync.reconcile() == "current" and sync.last_reconcile["message"] == "aktuell"
+    unconfigured = ReleaseSync(REPO, "", tmp_path / "x")
+    assert unconfigured.reconcile() == "unconfigured"
 
 
 def test_sync_waits_until_all_assets_uploaded(tmp_path):

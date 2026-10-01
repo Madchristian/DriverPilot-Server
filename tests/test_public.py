@@ -56,6 +56,24 @@ def test_setup_zip_created_on_startup_and_listed_first(tmp_path, contract):
         h.close()
 
 
+def test_listing_follows_manifest(tmp_path, contract):
+    import json
+
+    downloads = tmp_path / "dl"
+    downloads.mkdir()
+    for name in ("DriverPilot-0.3.4-win-x64.zip", "DriverPilot-0.4.0-win-x64.zip", "DriverPilot.cer"):
+        (downloads / name).write_bytes(b"x")
+    (downloads / ".manifest.json").write_text(json.dumps({"tag": "v0.4.0", "files": ["DriverPilot-0.4.0-win-x64.zip", "DriverPilot.cer", "fehlt.txt"]}))
+    h = Harness(tmp_path, contract, DP_DOWNLOADS_DIR=str(downloads))
+    try:
+        names = [f["name"] for f in h.api.get("/public-api/downloads").json()["files"]]
+        assert names == ["DriverPilot-0.4.0-win-x64.zip", "DriverPilot.cer"]
+        # Die alte Datei liegt noch da und bleibt direkt abrufbar (laufende Downloads), ist aber nicht gelistet.
+        assert h.api.get("/downloads/DriverPilot-0.3.4-win-x64.zip").status_code == 200
+    finally:
+        h.close()
+
+
 def test_missing_downloads_dir_is_harmless(tmp_path, contract):
     h = Harness(tmp_path, contract, DP_DOWNLOADS_DIR=str(tmp_path / "gibt-es-nicht"))
     try:

@@ -103,6 +103,8 @@ class Settings:
     github_webhook_secret: str = field(default_factory=lambda: os.environ.get("DP_GITHUB_WEBHOOK_SECRET", ""))
     release_sync_token: str = field(default_factory=lambda: os.environ.get("DP_RELEASE_SYNC_TOKEN", ""))
     releases_keep: int = field(default_factory=lambda: _env_int("DP_RELEASES_KEEP", 2))
+    # Regelmaessiger Abgleich mit /releases/latest (verpasster Webhook); 0 = aus.
+    release_reconcile_minutes: int = field(default_factory=lambda: _env_int("DP_RELEASE_RECONCILE_MINUTES", 360))
 
     def __post_init__(self) -> None:
         if self.ai_provider not in ("none", "test", "codex"):

@@ -296,6 +296,9 @@ class AdminApi:
             "client_repo": self.settings.client_repo,
             "keep": self.settings.releases_keep,
             "last": dict(sync.last) if sync else {"state": "idle"},
+            "last_reconcile": dict(sync.last_reconcile) if sync else {"state": "idle"},
+            "current_tag": sync.current_tag() if sync else None,
+            "reconcile_minutes": self.settings.release_reconcile_minutes,
             "files": Public(self.settings).entries_json(),
             "public_base_url": self.settings.public_base_url,
         })

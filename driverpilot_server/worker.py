@@ -191,6 +191,30 @@ class Worker:
                 pass
 
 
+async def reconcile_loop(service: Service, interval_minutes: int, stop: asyncio.Event) -> None:
+    """Holt ein verpasstes Release nach: erst kurz nach dem Start, dann alle `interval_minutes`."""
+    if interval_minutes <= 0:
+        return
+    try:
+        await asyncio.wait_for(stop.wait(), timeout=60)
+        return
+    except asyncio.TimeoutError:
+        pass
+    while not stop.is_set():
+        sync = service.releases
+        if sync is not None and sync.configured():
+            try:
+                result = await asyncio.to_thread(sync.reconcile)
+                if result not in ("current", "unconfigured"):
+                    log.info("Release-Abgleich: %s (%s)", result, sync.last_reconcile.get("message", ""))
+            except Exception:
+                log.exception("Release-Abgleich fehlgeschlagen")
+        try:
+            await asyncio.wait_for(stop.wait(), timeout=interval_minutes * 60)
+        except asyncio.TimeoutError:
+            pass
+
+
 async def cleanup_loop(service: Service, interval_seconds: int, stop: asyncio.Event) -> None:
     while not stop.is_set():
         try:

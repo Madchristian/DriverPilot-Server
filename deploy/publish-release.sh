@@ -27,4 +27,8 @@ ls -l
 
 echo "Kopiere nach $TARGET ..."
 scp -q ./* "$TARGET"
-echo "Fertig. Pruefen: https://driverpilot.cstrube.de/downloads/"
+# Manifest = sichtbare Generation; die Setup-ZIP legt der Server beim naechsten Start selbst an.
+HOST="${TARGET%%:*}"; DIR="${TARGET#*:}"
+FILES=$(ls -1 | sed 's/.*/"&"/' | paste -sd, -)
+ssh "$HOST" "cd '$DIR' && printf '{\"tag\": \"%s\", \"files\": [%s], \"switched_at\": \"%s\", \"source\": \"publish-release.sh\"}\n' '$TAG' '$FILES' \"\$(date -u +%Y-%m-%dT%H:%M:%SZ)\" > .manifest.json.tmp && mv .manifest.json.tmp .manifest.json"
+echo "Fertig. Pruefen: https://driverpilot.cstrube.de/downloads"
