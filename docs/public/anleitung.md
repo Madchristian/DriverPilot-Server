@@ -8,29 +8,41 @@ PC auf Anweisung von außen.
 
 ## 1. Installation
 
-Die Dateien findest du unter [Downloads](/downloads/). Du brauchst `DriverPilot.cer`, die
-Datei `ZERTIFIKAT-ANLEITUNG.txt` und die Setup-Datei `DriverPilot-<Version>-Setup-x64.exe`.
-Die ZIP-Datei ist die portable Variante ohne Installation und ohne Wartungsautomatik.
+Die Dateien findest du unter [Downloads](/downloads/). Für die Installation nimmst du die
+Setup-ZIP, `DriverPilot-<Version>-Setup-x64.zip`. Sie enthält die Setup-Datei, das Zertifikat
+`DriverPilot.cer` und die `ZERTIFIKAT-ANLEITUNG.txt`. Die Setup-EXE gibt es auch einzeln, aber
+Browser und Microsoft Defender SmartScreen blockieren den direkten Download einer EXE, die noch
+nicht viele Leute heruntergeladen haben. Die ZIP kommt durch. Die portable ZIP
+(`DriverPilot-<Version>-win-x64.zip`) ist die Variante ohne Installation und ohne
+Wartungsautomatik.
 
-Die Dateien sind mit Christians eigenem Zertifikat signiert. Windows kennt dieses Zertifikat
+Die Programme sind mit Christians eigenem Zertifikat signiert. Windows kennt dieses Zertifikat
 nicht von sich aus, darum richtest du das Vertrauen einmalig selbst ein:
 
-1. Den SHA-256-Fingerabdruck aus `ZERTIFIKAT-ANLEITUNG.txt` direkt mit Christian abgleichen,
+1. Die Setup-ZIP in einen eigenen Ordner entpacken (Rechtsklick, „Alle extrahieren“).
+2. Den SHA-256-Fingerabdruck aus `ZERTIFIKAT-ANLEITUNG.txt` direkt mit Christian abgleichen,
    zum Beispiel am Telefon. Eine Anleitung und ein Zertifikat aus derselben Downloadquelle
    beweisen allein nicht, dass die Quelle unverändert ist.
-2. Im Downloadordner PowerShell öffnen und prüfen: `Get-FileHash .\DriverPilot.cer -Algorithm SHA256`.
+3. Im entpackten Ordner PowerShell öffnen und prüfen: `Get-FileHash .\DriverPilot.cer -Algorithm SHA256`.
    Nur weitermachen, wenn der Fingerabdruck genau passt.
-3. `DriverPilot.cer` doppelklicken, „Zertifikat installieren“, „Lokaler Computer“, „Alle
+4. `DriverPilot.cer` doppelklicken, „Zertifikat installieren“, „Lokaler Computer“, „Alle
    Zertifikate in folgendem Speicher speichern“, „Vertrauenswürdige Stammzertifizierungsstellen“,
    „Fertig stellen“. Windows fragt nach Administratorrechten und zeigt eventuell eine Warnung.
-4. Die Setup-Datei mit der rechten Maustaste anklicken, „Eigenschaften“, „Digitale
+5. Die Setup-Datei mit der rechten Maustaste anklicken, „Eigenschaften“, „Digitale
    Signaturen“, „Christian Strube“, „Details“. Windows muss die Signatur als gültig anzeigen.
-5. Setup starten. Es kopiert DriverPilot nach `C:\Program Files\DriverPilot` und richtet die
-   Wartungsautomatik ein. Du kannst sie in den Einstellungen abschalten.
+6. Setup starten. Zeigt SmartScreen „Der Computer wurde durch Windows geschützt“, dann erst
+   „Weitere Informationen“ und „Trotzdem ausführen“, wenn Schritt 5 eine gültige Signatur von
+   Christian Strube gezeigt hat. Das Setup kopiert DriverPilot nach `C:\Program Files\DriverPilot`
+   und richtet die Wartungsautomatik ein; du kannst sie in den Einstellungen abschalten.
+
+Meldet Microsoft Defender dagegen einen Virenfund mit Namen (etwa „Trojan:…“ oder „Wacatac“)
+oder verschiebt die Datei in die Quarantäne, die Datei nicht freigeben. Sag Christian Bescheid,
+mit dem Namen aus der Meldung. Bei selbst signierten Installern kommt das als Fehlalarm vor;
+Christian klärt das mit Microsoft.
 
 Windows-Schutzfunktionen bleiben an. Weder das Setup noch die App importieren Zertifikate von
 selbst. Updates einer installierten Version machst du über „Einstellungen“ und „Updatepaket
-auswählen“ mit dem ZIP einer neueren Version.
+auswählen“ mit der portablen ZIP einer neueren Version.
 
 Die Funktion „Hilfe von Christian“ ist in Version 0.3.4 noch nicht enthalten. Sie kommt mit
 der nächsten Version; die Downloadseite zeigt immer die aktuelle.

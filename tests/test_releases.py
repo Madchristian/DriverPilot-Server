@@ -55,11 +55,31 @@ def test_sync_downloads_verifies_and_prunes(tmp_path):
     (dl / "DriverPilot-0.3.4-Setup-x64.exe").write_bytes(b"old")
     (dl / "DriverPilot-0.3.4-win-x64.zip").write_bytes(b"old")
     files = sync.run("v0.4.0")
-    assert files == ["DriverPilot-0.4.0-Setup-x64.exe", "DriverPilot-0.4.0-win-x64.zip", "DriverPilot.cer", "SHA256SUMS.txt"]
+    assert files == ["DriverPilot-0.4.0-Setup-x64.exe", "DriverPilot-0.4.0-Setup-x64.zip", "DriverPilot-0.4.0-win-x64.zip", "DriverPilot.cer", "SHA256SUMS.txt"]
     assert (dl / "DriverPilot-0.4.0-win-x64.zip").read_bytes() == b"ZIP4"
     assert not (dl / "DriverPilot-0.3.4-win-x64.zip").exists()  # keep_versions=1
     assert not any(p.name.startswith(".incoming") for p in dl.iterdir())
     assert oct((dl / "DriverPilot.cer").stat().st_mode & 0o777) == "0o644"
+
+
+def test_setup_zip_is_created_and_pruned_per_kind(tmp_path):
+    import zipfile
+
+    fake = FakeGitHub("v0.4.0", {"DriverPilot-0.4.0-Setup-x64.exe": b"EXE4", "DriverPilot-0.4.0-win-x64.zip": b"ZIP4",
+                                 "DriverPilot.cer": b"CER", "ZERTIFIKAT-ANLEITUNG.txt": b"TXT"})
+    sync = make_sync(tmp_path, fake, keep_versions=1)
+    dl = tmp_path / "dl"
+    dl.mkdir()
+    for old in ("DriverPilot-0.3.4-Setup-x64.exe", "DriverPilot-0.3.4-Setup-x64.zip", "DriverPilot-0.3.4-win-x64.zip"):
+        (dl / old).write_bytes(b"old")
+    files = sync.run("v0.4.0")
+    assert "DriverPilot-0.4.0-Setup-x64.zip" in files
+    with zipfile.ZipFile(dl / "DriverPilot-0.4.0-Setup-x64.zip") as archive:
+        assert sorted(archive.namelist()) == ["DriverPilot-0.4.0-Setup-x64.exe", "DriverPilot.cer", "ZERTIFIKAT-ANLEITUNG.txt"]
+        assert archive.read("DriverPilot-0.4.0-Setup-x64.exe") == b"EXE4"
+    remaining = sorted(p.name for p in dl.iterdir())
+    assert remaining == ["DriverPilot-0.4.0-Setup-x64.exe", "DriverPilot-0.4.0-Setup-x64.zip", "DriverPilot-0.4.0-win-x64.zip",
+                         "DriverPilot.cer", "SHA256SUMS.txt", "ZERTIFIKAT-ANLEITUNG.txt"]
 
 
 def test_sync_waits_until_all_assets_uploaded(tmp_path):

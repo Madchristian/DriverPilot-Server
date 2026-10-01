@@ -32,6 +32,7 @@ def test_downloads_listing_and_file(tmp_path, contract):
         assert "DriverPilot-0.3.4-win-x64.zip" in listing.text and "SHA256SUMS.txt" in listing.text
         assert "secret.sqlite3" not in listing.text and ".hidden.txt" not in listing.text
         assert hashlib.sha256(b"PK\x03\x04synthetic").hexdigest() in listing.text
+        assert "Portable Version" in listing.text
 
         file = h.api.get("/downloads/DriverPilot-0.3.4-win-x64.zip")
         assert file.status_code == 200 and file.content == b"PK\x03\x04synthetic"
@@ -42,6 +43,22 @@ def test_downloads_listing_and_file(tmp_path, contract):
             assert h.api.get(f"/downloads/{bad}").status_code == 404, bad
         # API bleibt JSON, Seiten bleiben HTML
         assert h.api.get("/api/v1/nope").json()["error"]["code"] == "not_found"
+    finally:
+        h.close()
+
+
+def test_setup_zip_created_on_startup_and_listed_first(tmp_path, contract):
+    downloads = tmp_path / "dl"
+    downloads.mkdir()
+    (downloads / "DriverPilot-0.3.4-Setup-x64.exe").write_bytes(b"MZ-synthetic")
+    (downloads / "DriverPilot-0.3.4-win-x64.zip").write_bytes(b"PK-synthetic")
+    (downloads / "DriverPilot.cer").write_bytes(b"CER")
+    h = Harness(tmp_path, contract, DP_DOWNLOADS_DIR=str(downloads))
+    try:
+        assert (downloads / "DriverPilot-0.3.4-Setup-x64.zip").is_file()
+        text = h.api.get("/downloads/").text
+        assert text.index("DriverPilot-0.3.4-Setup-x64.zip") < text.index("DriverPilot-0.3.4-win-x64.zip")
+        assert "Installation (empfohlen)" in text
     finally:
         h.close()
 

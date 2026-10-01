@@ -89,8 +89,40 @@ class Public:
                 cached = (stat.st_size, stat.st_mtime_ns, digest.hexdigest())
                 self._hash_cache[path.name] = cached
             entries.append({"name": path.name, "size": stat.st_size, "sha256": cached[2], "mtime": stat.st_mtime})
-        entries.sort(key=lambda e: (-e["mtime"], e["name"]))
+        entries.sort(key=lambda e: (self._rank(e["name"]), e["name"]))
         return entries
+
+    @staticmethod
+    def _rank(name: str) -> int:
+        lower = name.lower()
+        if "-setup-" in lower and lower.endswith(".zip"):
+            return 0
+        if lower.endswith("-win-x64.zip"):
+            return 1
+        if lower.endswith(".cer"):
+            return 2
+        if lower.startswith("zertifikat"):
+            return 3
+        if lower.startswith("sha256sums"):
+            return 4
+        return 5
+
+    @staticmethod
+    def describe(name: str) -> str:
+        lower = name.lower()
+        if "-setup-" in lower and lower.endswith(".zip"):
+            return "Installation (empfohlen): enthält Setup, Zertifikat und Zertifikat-Anleitung"
+        if "-setup-" in lower and lower.endswith(".exe"):
+            return "Setup direkt; Browser und Defender blockieren diesen Download oft, dann die ZIP darüber nehmen"
+        if lower.endswith("-win-x64.zip"):
+            return "Portable Version und Updatepaket für eine installierte Version"
+        if lower.endswith(".cer"):
+            return "Christians Zertifikat (öffentlicher Teil)"
+        if lower.startswith("zertifikat"):
+            return "Anleitung zum Zertifikat mit Fingerabdruck"
+        if lower.startswith("sha256sums"):
+            return "Prüfsummen aus dem GitHub-Release"
+        return ""
 
     @staticmethod
     def _human_size(size: int) -> str:
@@ -129,7 +161,8 @@ class Public:
     async def downloads(self, request: Request) -> Response:
         entries = self._entries()
         rows = "".join(
-            f'<tr><td><a href="/downloads/{html.escape(e["name"])}">{html.escape(e["name"])}</a></td>'
+            f'<tr><td><a href="/downloads/{html.escape(e["name"])}">{html.escape(e["name"])}</a>'
+            f'<br><span class="muted">{html.escape(self.describe(e["name"]))}</span></td>'
             f'<td>{self._human_size(e["size"])}</td><td><code>{e["sha256"]}</code></td></tr>'
             for e in entries
         )
@@ -139,8 +172,9 @@ class Public:
         )
         body = (
             "<h1>Downloads</h1>"
-            "<p>Alle Dateien sind mit Christians Zertifikat signiert. Vor der Installation den Fingerabdruck des "
-            "Zertifikats mit Christian abgleichen, siehe <a href=\"/anleitung\">Anleitung</a>, Abschnitt 1. "
+            "<p>Für die Installation die Setup-ZIP laden, entpacken und dann der <a href=\"/anleitung\">Anleitung</a>, "
+            "Abschnitt 1, folgen. Die Programme darin sind mit Christians Zertifikat signiert; den Fingerabdruck "
+            "des Zertifikats vorher mit Christian abgleichen. "
             "Die Prüfsumme einer heruntergeladenen Datei zeigt PowerShell mit "
             "<code>Get-FileHash .\\&lt;Datei&gt; -Algorithm SHA256</code>.</p>" + table
         )

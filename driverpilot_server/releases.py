@@ -20,6 +20,7 @@ import re
 import shutil
 import threading
 import time
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,7 +30,40 @@ from .public import ALLOWED_SUFFIXES, FILENAME_RE
 
 log = logging.getLogger("driverpilot.releases")
 SUMS_NAME = "SHA256SUMS.txt"
-VERSIONED_RE = re.compile(r"^DriverPilot-(\d+\.\d+\.\d+)-.*\.(exe|zip)$")
+VERSIONED_RE = re.compile(r"^DriverPilot-(\d+\.\d+\.\d+)-(.*\.(?:exe|zip))$")
+SETUP_EXE_RE = re.compile(r"^(DriverPilot-\d+\.\d+\.\d+-Setup-[A-Za-z0-9]+)\.exe$")
+SETUP_ZIP_EXTRAS = ("DriverPilot.cer", "ZERTIFIKAT-ANLEITUNG.txt")
+
+
+def ensure_setup_zips(downloads_dir: Path) -> list[str]:
+    """Legt zu jeder Setup-EXE eine gleichnamige ZIP an (EXE, Zertifikat, Zertifikat-Anleitung).
+
+    Browser und SmartScreen blockieren den direkten Download einer EXE ohne Reputation oft; als ZIP
+    kommt die Datei an. Der Inhalt bleibt die unveraenderte, signierte EXE. Defender prueft sie beim
+    Entpacken und Starten wie jede andere Datei.
+    """
+    created = []
+    downloads_dir = Path(downloads_dir)
+    if not downloads_dir.is_dir():
+        return created
+    for exe in sorted(downloads_dir.iterdir()):
+        match = SETUP_EXE_RE.match(exe.name)
+        if not match or not exe.is_file():
+            continue
+        target = downloads_dir / f"{match.group(1)}.zip"
+        if target.exists() and target.stat().st_mtime >= exe.stat().st_mtime:
+            continue
+        tmp = downloads_dir / f".{target.name}.tmp"
+        with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_STORED) as archive:
+            archive.write(exe, exe.name)
+            for extra in SETUP_ZIP_EXTRAS:
+                if (downloads_dir / extra).is_file():
+                    archive.write(downloads_dir / extra, extra)
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, target)
+        created.append(target.name)
+        log.info("Setup-ZIP angelegt: %s", target.name)
+    return created
 MAX_ASSET_BYTES = 600 * 1024 * 1024
 
 
@@ -195,11 +229,12 @@ class ReleaseSync:
         finally:
             shutil.rmtree(incoming, ignore_errors=True)
         self._prune()
+        wrapped = ensure_setup_zips(self.downloads_dir)
         log.info("Release %s uebernommen: %s", tag_name, ", ".join(sorted(wanted)))
-        return sorted(wanted)
+        return sorted(wanted | set(wrapped))
 
     def _prune(self) -> None:
-        """Behaelt je Dateityp die neuesten `keep_versions` Versionen von exe und zip."""
+        """Behaelt je Dateiart (Setup-EXE, Setup-ZIP, portable ZIP) die neuesten `keep_versions` Versionen."""
         groups: dict[str, list[tuple[tuple[int, ...], Path]]] = {}
         for path in self.downloads_dir.iterdir():
             match = VERSIONED_RE.match(path.name)

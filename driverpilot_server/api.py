@@ -24,7 +24,7 @@ from starlette.routing import Route
 from .contract import ERROR_MESSAGES, ContractError, is_uuid
 from .public import Public
 from .ratelimit import SlidingWindow
-from .releases import ReleaseSync, verify_github_signature
+from .releases import ReleaseSync, ensure_setup_zips, verify_github_signature
 from .service import Service
 
 log = logging.getLogger("driverpilot.api")
@@ -48,6 +48,10 @@ class Api:
         self.releases = ReleaseSync(settings.client_repo, settings.github_token, settings.downloads_dir,
                                     settings.releases_keep, audit=service.audit)
         service.releases = self.releases
+        try:
+            ensure_setup_zips(settings.downloads_dir)
+        except OSError as exc:
+            log.warning("Setup-ZIP nicht angelegt: %s", exc)
 
     # ------------------------------------------------------------------ Hilfen
 
