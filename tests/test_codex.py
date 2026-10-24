@@ -142,8 +142,12 @@ def test_codex_without_login_means_manual_mode(tmp_path, contract):
         h.service.codex_auth = auth
         assert h.api.get("/api/v1/capabilities").json()["external_ai_offered"] is False
         token = h.pair()["access_token"]
-        assert h.create_case(token, KEY_A).json()["status"] == "awaiting_review"
+        case_id = h.create_case(token, KEY_A).json()["case_id"]
+        assert h.service._case(case_id)["status"] == "awaiting_review"
         assert h.service.db.one("SELECT COUNT(*) FROM jobs")[0] == 0
+        expected = {"offered": False, "needs_login": True, "last_error": None}
+        assert h.admin.get("/admin-api/overview").json()["ai"] == expected
+        assert h.admin.get(f"/admin-api/cases/{case_id}").json()["ai"] == expected
         page = h.admin.get("/admin-api/codex")
         assert page.status_code == 200 and page.json()["status"]["logged_in"] is False and page.json()["ai_offered"] is False
     finally:

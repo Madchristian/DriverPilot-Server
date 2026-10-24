@@ -5,12 +5,14 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import Flash from '$lib/components/Flash.svelte';
+	import AiHealthBanner from '$lib/components/AiHealthBanner.svelte';
 	import ReportView from '$lib/components/ReportView.svelte';
 	import ResultView from '$lib/components/ResultView.svelte';
 	import DraftEditor from '$lib/components/DraftEditor.svelte';
 	import { CATEGORY, OUTCOME, dateTime, relative, short } from '$lib/format';
 	let { data, form } = $props();
 	const c = $derived(data.case);
+	const failedRun = $derived(c.status === 'analysis_failed' && data.runs.some((r: any) => r.outcome === 'provider_unavailable'));
 
 	onMount(() => {
 		const timer = setInterval(() => {
@@ -49,6 +51,7 @@
 </div>
 
 <div class="mb-4"><Flash {form} /></div>
+<AiHealthBanner ai={data.ai} {failedRun} />
 
 {#if c.status === 'analyzing' || c.status === 'queued'}
 	<div class="card p-4 mb-4 flex items-center gap-3 border-violet/30">

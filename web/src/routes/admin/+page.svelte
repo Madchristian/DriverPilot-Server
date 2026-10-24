@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import Kpi from '$lib/components/Kpi.svelte';
+	import AiHealthBanner from '$lib/components/AiHealthBanner.svelte';
 	import StatusPill from '$lib/components/StatusPill.svelte';
 	import { CATEGORY, relative, dateTime, short } from '$lib/format';
 	let { data } = $props();
@@ -24,6 +25,8 @@
 	</div>
 	<a href="/admin/invitations" class="btn btn-primary">Freund einladen</a>
 </div>
+
+<AiHealthBanner ai={data.ai} />
 
 <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
 	<Kpi label="Wartet auf dich" value={s.by_status.awaiting_review ?? 0} tone={(s.by_status.awaiting_review ?? 0) ? 'text-warn' : 'text-fg'} />

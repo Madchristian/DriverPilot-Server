@@ -96,6 +96,15 @@ class AdminApi:
 
     # ------------------------------------------------------------------ Uebersicht und Faelle
 
+    def _ai_health(self) -> dict:
+        """Kurzstatus des KI-Anbieters fuer Hinweise auf Uebersicht und Fallseite."""
+        auth = self.service.codex_auth
+        return {
+            "offered": self.service.external_ai_offered(),
+            "needs_login": bool(auth is not None and not auth.logged_in()),
+            "last_error": auth.last_error if auth is not None else None,
+        }
+
     async def overview(self, request: Request) -> Response:
         self.actor(request)
         return self.ok({
@@ -103,6 +112,7 @@ class AdminApi:
             "stats": self.service.stats(),
             "settings": self.settings.describe(),
             "ai_offered": self.service.external_ai_offered(),
+            "ai": self._ai_health(),
             "cases": rows(self.service.list_cases()),
         })
 
@@ -147,6 +157,7 @@ class AdminApi:
             "results": [{**strip_body(r), "body": json.loads(r["body_json"])} for r in detail["results"]],
             "feedback": rows(detail["feedback"]),
             "runs": rows(detail["runs"]),
+            "ai": self._ai_health(),
             "jobs": rows(detail["jobs"]),
             "can": {
                 "release": contract.transition_allowed(case["status"], "released", "admin"),
