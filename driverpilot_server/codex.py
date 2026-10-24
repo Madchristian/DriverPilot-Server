@@ -159,6 +159,7 @@ class CodexAuth:
         url = f"{self.issuer}/oauth/token"
         form = {"grant_type": "refresh_token", "refresh_token": tokens.get("refresh_token"), "client_id": self.client_id}
         errors = []
+        rejected = True
         for payload in (
             {"data": form},
             {"json": {**form, "scope": "openid profile email"}},
@@ -167,6 +168,7 @@ class CodexAuth:
                 response = self.http.post(url, headers={"Accept": "application/json"}, **payload)
                 if response.status_code >= 400:
                     errors.append(f"HTTP {response.status_code}")
+                    rejected = rejected and response.status_code in (400, 401)
                     continue
                 body = response.json()
                 if not body.get("access_token"):
@@ -184,7 +186,17 @@ class CodexAuth:
                 return self.tokens["access_token"]
             except httpx.HTTPError as exc:
                 errors.append(type(exc).__name__)
+                rejected = False
         self.last_error = "Token-Refresh fehlgeschlagen: " + " / ".join(errors)
+        if rejected:
+            # Refresh-Token vom Anbieter abgelehnt (abgelaufen/widerrufen/rotiert): ohne neuen
+            # Login nicht heilbar. Tokens verwerfen, damit der Server in den manuellen Modus
+            # faellt (external_ai_offered=false) statt jeden Fall mit provider_unavailable
+            # scheitern zu lassen; die Adminseite bietet dann den Login an.
+            self.tokens = None
+            self.last_error += " – neue Anmeldung nötig"
+            self._save()
+        log.warning(self.last_error)
         raise AdapterTransientError(self.last_error)
 
     # ------------------------------------------------------------------ Device-Code-Login

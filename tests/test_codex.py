@@ -64,10 +64,21 @@ def test_refresh_when_expired(tmp_path):
 
 
 def test_refresh_failure_is_transient(tmp_path):
-    auth = auth_with(tmp_path, httpx.MockTransport(lambda r: httpx.Response(401)), exp_offset=-10)
+    auth = auth_with(tmp_path, httpx.MockTransport(lambda r: httpx.Response(503)), exp_offset=-10)
     with pytest.raises(AdapterTransientError):
         auth.access_token()
     assert "Refresh" in auth.status()["last_error"]
+    assert auth.logged_in()
+
+
+@pytest.mark.parametrize("status", [400, 401])
+def test_rejected_refresh_token_requires_new_login(tmp_path, status):
+    auth = auth_with(tmp_path, httpx.MockTransport(lambda r: httpx.Response(status)), exp_offset=-10)
+    with pytest.raises(AdapterTransientError):
+        auth.access_token()
+    assert not auth.logged_in() and "Anmeldung" in auth.status()["last_error"]
+    reloaded = CodexAuth(tmp_path / "data", "https://auth.test", "client-x")
+    assert not reloaded.logged_in()
 
 
 def adapter_with(tmp_path, handler) -> CodexAdapter:
