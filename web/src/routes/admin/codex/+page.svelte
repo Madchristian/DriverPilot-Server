@@ -43,9 +43,8 @@
 				<dt class="text-dim">Letzter Fehler</dt><dd class={st.last_error ? 'text-bad' : ''}>{st.last_error ?? '–'}</dd>
 			</dl>
 			<div class="mt-5 flex flex-wrap gap-2">
-				{#if !st.logged_in}
-					<form method="POST" action="?/login" use:enhance><button class="btn btn-primary"><Icon name="ai" />Mit ChatGPT anmelden</button></form>
-				{:else}
+				<form method="POST" action="?/login" use:enhance><button class="btn btn-primary"><Icon name="ai" />{st.logged_in ? 'Neu anmelden' : 'Mit ChatGPT anmelden'}</button></form>
+				{#if st.logged_in}
 					<form method="POST" action="?/logout" use:enhance={({ cancel }) => { if (!confirm('Abmelden und Tokendatei löschen?')) cancel(); }}>
 						<button class="btn btn-danger">Abmelden</button>
 					</form>
