@@ -12,7 +12,7 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 | Admin | `https://driverpilot.dns-prod-2.local.cstrube.de` (nur LAN/Tailnet, Authentik-Gruppe Homelab-Admins), SvelteKit-Oberfläche |
 | Oberfläche | SvelteKit (Svelte 5, Tailwind 4) in `web/`, eigener Container; Python bleibt für Vertrag, Webhooks, Downloads und Worker (Wunsch Christian 2026-10-01: moderneres Aussehen) |
 | Repo | `Madchristian/DriverPilot-Server` (privat) |
-| Vertrag | `contract/v1` = Kopie aus DriverPilot Commit `3c1becd` (siehe `contract/CONTRACT_SOURCE`), unverändert bestätigt |
+| Vertrag | `contract/v1` = Kopie aus DriverPilot Commit `07e5f45` (Merge PR #31, Schema 1.0 + 1.1, siehe `contract/CONTRACT_SOURCE`) |
 | KI | `codex`: ChatGPT über Christians persönliches Konto (Codex-OAuth), Modell `gpt-5.6-sol`, 10 Aufrufe/Tag. **Abweichung von Issue #19 §4** („kein Rückgriff auf Christians ChatGPT-/Codex-OAuth-Login“) – bewusste Entscheidung Christians, weil der Pilot privat bleibt (er und ein Freund). Ohne Login = manueller Modus |
 | Einladungen | Einmal (Default) oder Mehrfach (Admin-Option), damit ein Code an mehrere Freunde gehen kann |
 
@@ -34,6 +34,7 @@ Diese Datei ist das Logbuch der Serverseite. Bitte bei jeder Etappe fortschreibe
 - [x] TrueNAS-Traefik `dynamic/driverpilot.yml` + Cloudflare-Record (records.tf, tofu apply) live seit 2026-10-01; Origin-Lock geprüft (Direktzugriff 403)
 - [x] HTTPS über die Cloudflare-Edge geprüft: HTTP/2 200 `/capabilities`, Kette Google Trust Services (CF-Edge), `Cache-Control: no-store`, 404/401 als Fehlerobjekte, `WWW-Authenticate: Bearer`; http→https 301 nur an der Edge (Client nutzt ausschließlich https). Test von einem Anschluss außerhalb des Homelabs steht noch aus (Christian/DriverPilot-Agent)
 - [x] Codex-Adapter + Adminseite „KI (ChatGPT)“ (Device-Code-Login, auth.json-Import, Logout); Datenschutzhinweis v2026-10-01.2 nennt OpenAI
+- [x] Berichtsschema 1.1 (hardware_details: RAM-Module, GPU inkl. nvidia-smi, Laufwerke, Plattform) mit Client v0.3.7; Datenschutzhinweis v2026-10-24.1 nennt die neuen Felder
 - [x] ChatGPT-Login: Tokendatei aus dem Homelab-Dashboard übernommen (gleiches Konto; Refresh-Token wird jetzt von zwei Diensten benutzt, bei Rotation ggf. erneut kopieren oder eigenen Device-Login machen)
 - [x] Echter Providerlauf mit synthetischem Vertragsbericht am 2026-10-01: Entwurf nach ~2:20 min (7.075 Tokens), schemagültig, in der Adminansicht als KI-ENTWURF; Fall `71125ec3…` wartet auf Prüfung. Gotchas: Backend sendet SSE ohne Content-Type (Erkennung am Inhalt), Timeout 300 s nötig
 - [ ] Christian: in den ChatGPT-Kontoeinstellungen Trainingsnutzung prüfen (im Hinweis als abgeschaltet zugesagt)
