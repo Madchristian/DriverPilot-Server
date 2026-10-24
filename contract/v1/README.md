@@ -66,7 +66,7 @@ Der Server wartet im Upload nie auf ein Modell. Fehlermeldungen sind feste Texte
 - Ein Idempotency-Key gilt je Clientzugang und Endpunkt. Er wird erst mit einer Annahme (202 bzw. 201) gebunden; abgelehnte Requests binden ihn nicht.
 - Gleicher Key und dieselben Bytes: dieselbe Antwort mit demselben Fall in seinem aktuellen Zustand, ohne neue Analyse. Gleicher Key und andere Bytes: `idempotency_key_conflict`. Parallele Requests sichert ein Datenbank-Constraint ab.
 - Nach dem Löschen eines Falls bleibt ein inhaltsfreier Tombstone bis zum Ablauf des Clientzugangs; sein Key liefert `request_retired` und erzeugt keinen Fall neu.
-- Der Client erzeugt die endgültigen Bytes im Moment der Zustimmung (`consent.accepted_at`) und verwendet danach für jede Wiederholung genau diese Bytes und denselben Key. Die Vorschau zeigt alle Felder außer `consent`. Jede Änderung an Freitext oder Scan verlangt eine neue Zustimmung, neue Bytes und einen neuen Key.
+- Der Client erzeugt die endgültigen Bytes im Moment der Zustimmung (`consent.accepted_at`) und verwendet danach für jede Wiederholung genau diese Bytes und denselben Key. Die endgültige Vorschau zeigt **alle** Felder einschließlich `consent`; sie erscheint nach der lokalen Aktion „Vorschau prüfen / Zustimmung“, aber **vor** dem separaten Senden-Klick. Export und Upload verwenden genau diese UTF-8-Bytes (ohne BOM). Änderungen an Bericht, Scan, KI-Wahl, Empfänger oder geladenem Datenschutzhinweis verwerfen Zustimmung und Bytes. Sie verlangen eine neue Prüfung und einen neuen Key. Dies ist eine Entscheidung über Client-UX und Zeitpunkt der Zustimmung, keine Änderung des Wire-Schemas.
 
 ### Inhalt des Berichts
 
@@ -121,6 +121,7 @@ Zielhost des Servers ist ein Raspberry Pi 4 mit 4 GB RAM. Der Vertrag ist darauf
 - `protocol_version` und `schema_version` haben die Form `Major.Minor`. Der Server nimmt nur die in `/capabilities` genannten Berichtsversionen an.
 - Jede Änderung an Schemas, Fehlercodes, Zuständen oder Regeln ist eine Vertragsänderung: zuerst hier per Pull Request abstimmen, dann implementieren. Keine stillen Anpassungen in Client oder Server.
 - Neue Felder oder Enum-Werte brauchen eine neue Minor-Version, weil unbekannte Felder abgelehnt werden. Inkompatible Änderungen bekommen ein neues Verzeichnis `v2/`.
+- **Version 1.1** ergänzt `hardware_details` (CPU, Arbeitsspeicher, Grafikkarten samt `nvidia-smi`-Momentaufnahme, Laufwerke, Plattform). In 1.1 ist das Feld Pflicht, in 1.0 unbekannt; beide Versionen teilen sich ein Schema (`allOf` mit `if`/`then`). Ein Server, der 1.1 annimmt, nimmt weiter 1.0 an, bis kein Client mehr 1.0 sendet. Die Textmarker gelten auch für die neuen Textfelder; ihre Zeiger nutzen `*` für Array-Elemente (`rules.json`, `pointer_syntax`).
 
 ## Festlegungen, die Issue #19 offen lässt
 

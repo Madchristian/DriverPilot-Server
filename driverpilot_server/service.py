@@ -16,7 +16,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
-from .config import RESULT_SCHEMA_VERSION, Settings
+from .config import REPORT_SCHEMA_VERSIONS, RESULT_SCHEMA_VERSION, Settings
 from .contract import (
     FEEDBACK_SCHEMA,
     Contract,
@@ -102,7 +102,7 @@ class Service:
     def capabilities(self) -> dict:
         return {
             "protocol_version": "1.0",
-            "report_schema_versions": ["1.0"],
+            "report_schema_versions": REPORT_SCHEMA_VERSIONS,
             "result_schema_version": RESULT_SCHEMA_VERSION,
             "max_upload_bytes": self.settings.max_upload_bytes,
             "max_scan_age_seconds": self.settings.max_scan_age_seconds,

@@ -30,7 +30,7 @@ from .worker import AdapterRejected, AdapterResult, AdapterTransientError
 
 log = logging.getLogger("driverpilot.codex")
 
-PROMPT_VERSION = "codex-2026-10-01.1"
+PROMPT_VERSION = "codex-2026-10-24.1"
 
 
 def jwt_claims(token: str | None) -> dict:
@@ -300,7 +300,8 @@ Antwortformat: AUSSCHLIESSLICH ein JSON-Objekt (kein Text davor oder danach, kei
   "warnings": [ string (max 1000) ] (max 20),
   "sources": [ { "title": string (max 200), "url": "https://..." } ] (max 10; nur offizielle Seiten von Microsoft, NVIDIA, AMD, Intel, dem Mainboardhersteller oder Blizzard, ohne Port und Benutzerangabe; im Zweifel leer lassen, niemals Links erfinden)
 }
-Fakten müssen sich auf konkrete Befunde (findings), Geräte (devices) oder Berichtsfelder stützen. Beachte collection.*: alles außer "complete" bedeutet eine Erfassungslücke, nicht "unauffällig"."""
+Fakten müssen sich auf konkrete Befunde (findings), Geräte (devices) oder Berichtsfelder stützen. Beachte collection.*: alles außer "complete" bedeutet eine Erfassungslücke, nicht "unauffällig".
+hardware_details (ab Berichtsversion 1.1, sonst fehlt das Feld): Ein Bereich mit null wurde nicht erfasst; das ist kein unauffälliger Befund. Berichtsfelder darin belegst du mit Zeigern samt Array-Index, z. B. {"kind":"report_field","pointer":"/hardware_details/gpus/0/telemetry/power_limit_w"}. gpus[].telemetry ist eine einzelne Momentaufnahme im Moment des Scans, meist im Leerlauf: niedrige Temperatur, niedriger Takt und eine niedrigere PCIe-Generation als pcie_gen_max sind dann normal und kein Beleg für ein Problem unter Last. Ein power_limit_w über power_limit_default_w zeigt ein angehobenes Power-Limit. memory.modules[].configured_mts über rated_mts zeigt meist ein aktives XMP/EXPO-Profil, das ist für sich allein kein Fehler. disks[].health ist der Zustand laut Windows, keine SMART-Auswertung."""
 
 
 class CodexAdapter:

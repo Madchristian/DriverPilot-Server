@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CATEGORY, SEVERITY, dateTime } from '$lib/format';
+	import HardwareDetailsView from '$lib/components/HardwareDetailsView.svelte';
 	let { report }: { report: any } = $props();
 	const hw = $derived(report.hardware ?? {});
 	const hardwareRows = $derived([
@@ -62,6 +63,14 @@
 		</dl>
 	</section>
 </div>
+
+{#if report.hardware_details !== undefined}
+	{#if report.hardware_details}
+		<HardwareDetailsView details={report.hardware_details} />
+	{:else}
+		<p class="card p-4 mt-3 text-sm text-dim">Hardwaredetails: Erfassung auf dem PC fehlgeschlagen.</p>
+	{/if}
+{/if}
 
 <section class="card mt-3 overflow-hidden">
 	<h3 class="label px-5 pt-4">Befunde ({report.findings.length})</h3>

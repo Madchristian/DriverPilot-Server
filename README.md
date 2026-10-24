@@ -157,7 +157,7 @@ prüft die Antwort gegen Schema und Belegregeln; unbrauchbare Antworten → `out
 Schnittstelle für weitere Anbieter: `Adapter.analyze(report) -> AdapterResult`, `available()`.
 Pilotdefaults: ein gleichzeitiger Aufruf, höchstens zwei Versuche je Fall, 90 s Timeout,
 Timeout = `outcome_unknown` ohne Neuversuch, Tagesbudget (`DP_AI_DAILY_CALLS`) atomar reserviert.
-Der Datenschutzhinweis nennt OpenAI als Empfänger (Version `2026-10-01.2`).
+Der Datenschutzhinweis nennt OpenAI als Empfänger und ab Version `2026-10-24.1` die Hardwaredetails aus Bericht-Schema 1.1.
 
 ## Lizenz
 

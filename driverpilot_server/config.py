@@ -18,7 +18,7 @@ REPO_DIR = PACKAGE_DIR.parent
 CONTRACT_DIR = Path(os.environ.get("DP_CONTRACT_DIR", REPO_DIR / "contract" / "v1"))
 
 PROTOCOL_VERSION = "1.0"
-REPORT_SCHEMA_VERSIONS = ["1.0"]
+REPORT_SCHEMA_VERSIONS = ["1.0", "1.1"]
 RESULT_SCHEMA_VERSION = "1.0"
 
 # Harte Obergrenzen aus den Schemas (capabilities.schema.json). Eine Konfiguration darf
@@ -58,7 +58,7 @@ class Settings:
     # Gemeinsames Token zwischen SvelteKit-Oberflaeche (web/) und interner Admin-API (Port 8141).
     admin_api_token: str = field(default_factory=lambda: os.environ.get("DP_ADMIN_API_TOKEN", ""))
 
-    privacy_notice_version: str = field(default_factory=lambda: os.environ.get("DP_PRIVACY_NOTICE_VERSION", "2026-10-01.2"))
+    privacy_notice_version: str = field(default_factory=lambda: os.environ.get("DP_PRIVACY_NOTICE_VERSION", "2026-10-24.1"))
     privacy_notice_file: Path = field(
         default_factory=lambda: Path(os.environ.get("DP_PRIVACY_NOTICE_FILE", REPO_DIR / "privacy_notice.txt"))
     )

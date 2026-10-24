@@ -21,9 +21,10 @@ def test_capabilities_matches_schema(h, contract):
     assert contract.violations("capabilities", response.json()) == []
     assert response.json()["privacy_notice"]["version"] == SCENARIO["privacy_notice_version"]
     assert response.json()["external_ai_offered"] is False
+    assert response.json()["report_schema_versions"] == ["1.0", "1.1"]
 
 
-@pytest.mark.parametrize("name", ["wow-crash.json", "manual-minimal.json"])
+@pytest.mark.parametrize("name", ["wow-crash.json", "manual-minimal.json", "hardware-details.json"])
 def test_valid_reports_are_accepted(h, contract, name):
     token = h.pair()["access_token"]
     body = (FIXTURES / "valid/case-create-request" / name).read_bytes()

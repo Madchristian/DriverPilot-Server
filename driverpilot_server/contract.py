@@ -104,6 +104,17 @@ def resolve_pointer(document, pointer: str):
     return document
 
 
+def resolve_values(document, pointer: str) -> list:
+    """Alle Werte, die ein Zeiger aus rules.json trifft; das Segment * steht fuer jedes Array-Element."""
+    values = [document]
+    for part in pointer.strip("/").split("/"):
+        if part == "*":
+            values = [item for value in values if isinstance(value, list) for item in value]
+        else:
+            values = [value[part] for value in values if isinstance(value, dict) and part in value]
+    return values
+
+
 @dataclass(frozen=True)
 class TimeLimits:
     max_scan_age_seconds: int
@@ -205,9 +216,9 @@ class Contract:
     def check_text(self, name: str, instance: dict) -> None:
         """Schritt 12: Textmarker. Nennt weder Feld noch Fundstelle."""
         for pointer in self.text_fields.get(name, []):
-            value = resolve_pointer(instance, pointer)
-            if isinstance(value, str) and any(pattern.search(value) for _, pattern in self.forbidden_text):
-                raise ContractError("text_rejected")
+            for value in resolve_values(instance, pointer):
+                if isinstance(value, str) and any(pattern.search(value) for _, pattern in self.forbidden_text):
+                    raise ContractError("text_rejected")
 
     def text_hits(self, text: str) -> list[str]:
         """Fuer die Adminansicht: welche Marker in einem Entwurfstext anschlagen wuerden."""
